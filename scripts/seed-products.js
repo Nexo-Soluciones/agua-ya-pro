@@ -7,7 +7,7 @@ const PRODUCTS_CATALOG = [
     nombre: 'BOTELLON (20L)',
     categoria: 'BOTELLONES',
     precioBase: 10000,
-    preciosDisponibles: JSON.stringify([10500, 10000, 9500, 9000, 8500, 8000, 7000, 6000, 5000]),
+    preciosDisponibles: JSON.stringify([10500, 10000, 9500, 9000, 8933, 8500, 8000, 7000, 6000, 5000]),
     icono: '💧',
     descripcion: 'Recarga estándar de agua purificada en botellón de 20 Litros',
     orden: 1,

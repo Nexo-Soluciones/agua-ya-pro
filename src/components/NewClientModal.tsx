@@ -177,14 +177,16 @@ export function NewClientModal({ isOpen, onClose, onClientCreated }: NewClientMo
               onChange={(e) => setPrecioAcordado(Number(e.target.value))}
               className="w-full px-3.5 py-2.5 bg-white border border-sky-300 rounded-xl text-sm font-black text-sky-900 focus:outline-none focus:ring-2 focus:ring-sky-500 shadow-sm"
             >
-              <option value={5000}>$5.000 COP — Tarifa Especial / Mayorista</option>
-              <option value={6000}>$6.000 COP — Tarifa Descuento Preferencial</option>
-              <option value={7000}>$7.000 COP — Tarifa Frecuente Estándar</option>
-              <option value={8000}>$8.000 COP — Tarifa Cliente Nuevo Estándar</option>
-              <option value={9000}>$9.000 COP — Tarifa Especial Zona</option>
-              <option value={10000}>$10.000 COP — Tarifa Larga Distancia</option>
-              <option value={11000}>$11.000 COP — Tarifa Premium</option>
-              <option value={12000}>$12.000 COP — Tarifa Máxima Especial</option>
+              <option value={10500}>$10.500 COP</option>
+              <option value={10000}>$10.000 COP</option>
+              <option value={9500}>$9.500 COP</option>
+              <option value={9000}>$9.000 COP</option>
+              <option value={8933}>$8.933 COP</option>
+              <option value={8500}>$8.500 COP</option>
+              <option value={8000}>$8.000 COP</option>
+              <option value={7000}>$7.000 COP</option>
+              <option value={6000}>$6.000 COP</option>
+              <option value={5000}>$5.000 COP</option>
             </select>
             <p className="text-[11px] text-sky-700 font-medium">
               Este precio se guardará en la ficha del cliente y se usará automáticamente en cada pedido.

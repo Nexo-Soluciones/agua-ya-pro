@@ -44,7 +44,7 @@ interface OrderCartItem {
 }
 
 const DEFAULT_PRODUCTS: ProductItem[] = [
-  { id: 1, nombre: 'BOTELLON (20L)', categoria: 'BOTELLONES', precioBase: 10000, icono: '💧', preciosDisponibles: '[10500,10000,9500,9000,8500,8000,7000,6000,5000]' },
+  { id: 1, nombre: 'BOTELLON (20L)', categoria: 'BOTELLONES', precioBase: 10000, icono: '💧', preciosDisponibles: '[10500,10000,9500,9000,8933,8500,8000,7000,6000,5000]' },
   { id: 2, nombre: 'BOTELLON VC (Envase + Agua)', categoria: 'BOTELLONES', precioBase: 40000, icono: '🆕' },
   { id: 3, nombre: 'BANDEJA 620 ML', categoria: 'BANDEJAS', precioBase: 15000, icono: '📦' },
   { id: 4, nombre: 'BANDEJA 300 ML', categoria: 'BANDEJAS', precioBase: 14000, icono: '📦' },
@@ -582,14 +582,16 @@ export function NewOrderModal({
                           onChange={(e) => updateItemPrice(item.productoId, Number(e.target.value))}
                           className="text-xs font-black bg-sky-50 border border-sky-300 text-sky-900 rounded-lg px-2 py-0.5"
                         >
-                          <option value={10000}>$10.000 (Base)</option>
+                          <option value={10500}>$10.500</option>
+                          <option value={10000}>$10.000</option>
                           <option value={9500}>$9.500</option>
                           <option value={9000}>$9.000</option>
+                          <option value={8933}>$8.933</option>
                           <option value={8500}>$8.500</option>
-                          <option value={8000}>$8.000 (Nuevo)</option>
-                          <option value={7000}>$7.000 (Frecuente)</option>
-                          <option value={6000}>$6.000 (Especial)</option>
-                          <option value={5000}>$5.000 (Mayorista)</option>
+                          <option value={8000}>$8.000</option>
+                          <option value={7000}>$7.000</option>
+                          <option value={6000}>$6.000</option>
+                          <option value={5000}>$5.000</option>
                         </select>
                       </div>
                     ) : (
