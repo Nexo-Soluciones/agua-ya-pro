@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Presentación Ejecutiva - AGUA YA PRO</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #38bdf8;
+      --primary-dark: #0284c7;
+      --bg: #030712;
+      --card-bg: rgba(15, 23, 42, 0.75);
+      --border: rgba(56, 189, 248, 0.25);
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent: #10b981;
+      --warning: #f59e0b;
+      --danger: #f43f5e;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      background: radial-gradient(circle at 50% 20%, #0c4a6e 0%, #030712 65%);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Presentation Wrapper */
+    .deck-container {
+      width: 100%;
+      max-width: 1000px;
+      height: 600px;
+      background: var(--card-bg);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid var(--border);
+      border-radius: 28px;
+      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.7), inset 0 1px 2px rgba(255, 255, 255, 0.15);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Top Bar */
+    .deck-header {
+      padding: 20px 32px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .brand-pill {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 900;
+      font-size: 16px;
+      letter-spacing: -0.3px;
+    }
+
+    .brand-pill span {
+      color: var(--primary);
+    }
+
+    .slide-counter {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-muted);
+      background: rgba(255, 255, 255, 0.06);
+      padding: 4px 12px;
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    /* Slide Content Area */
+    .slide-body {
+      flex: 1;
+      padding: 36px 44px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      position: relative;
+    }
+
+    .slide {
+      display: none;
+      animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      height: 100%;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .slide.active {
+      display: flex;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(12px) scale(0.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .slide-tag {
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--primary);
+      margin-bottom: 8px;
+    }
+
+    .slide-title {
+      font-size: 32px;
+      font-weight: 900;
+      letter-spacing: -0.8px;
+      line-height: 1.2;
+      margin-bottom: 14px;
+    }
+
+    .slide-desc {
+      font-size: 16px;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+      line-height: 1.6;
+      max-width: 800px;
+    }
+
+    /* Grid layout for cards inside slides */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+
+    .feature-card {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 18px;
+      padding: 18px 22px;
+      transition: all 0.2s ease;
+    }
+
+    .feature-card:hover {
+      background: rgba(255, 255, 255, 0.07);
+      border-color: rgba(56, 189, 248, 0.4);
+      transform: translateY(-2px);
+    }
+
+    .feature-card h4 {
+      font-size: 16px;
+      font-weight: 800;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #ffffff;
+    }
+
+    .feature-card p {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* Pain points grid */
+    .pain-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+    }
+
+    .pain-card {
+      background: rgba(244, 63, 94, 0.08);
+      border: 1px solid rgba(244, 63, 94, 0.2);
+      border-radius: 16px;
+      padding: 16px 20px;
+    }
+
+    .pain-card h4 {
+      color: #fda4af;
+      font-size: 15px;
+      font-weight: 800;
+      margin-bottom: 4px;
+    }
+
+    .pain-card p {
+      color: #cbd5e1;
+      font-size: 13px;
+    }
+
+    /* Comparison Table */
+    .roi-table {
+      width: 100%;
+      border-collapse: collapse;
+      border-radius: 16px;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .roi-table th, .roi-table td {
+      padding: 12px 18px;
+      font-size: 13px;
+      text-align: left;
+    }
+
+    .roi-table th {
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--primary);
+      font-weight: 800;
+      text-transform: uppercase;
+      font-size: 11px;
+      letter-spacing: 1px;
+    }
+
+    .roi-table tr:not(:last-child) {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .roi-table .highlight-green {
+      color: #34d399;
+      font-weight: 800;
+    }
+
+    /* Bottom Navigation Bar */
+    .deck-footer {
+      padding: 16px 32px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(0, 0, 0, 0.2);
+    }
+
+    .nav-btn {
+      background: rgba(255, 255, 255, 0.08);
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      padding: 10px 22px;
+      border-radius: 14px;
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .nav-btn:hover:not(:disabled) {
+      background: var(--primary);
+      color: #030712;
+      border-color: var(--primary);
+      transform: scale(1.04);
+    }
+
+    .nav-btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+
+    .cta-btn {
+      background: linear-gradient(135deg, #38bdf8, #0284c7);
+      color: #030712;
+      border: none;
+      padding: 12px 28px;
+      border-radius: 16px;
+      font-size: 14px;
+      font-weight: 900;
+      cursor: pointer;
+      box-shadow: 0 10px 25px rgba(56, 189, 248, 0.35);
+      transition: all 0.2s ease;
+    }
+
+    .cta-btn:hover {
+      transform: translateY(-2px) scale(1.03);
+      box-shadow: 0 14px 30px rgba(56, 189, 248, 0.45);
+    }
+
+    /* Hero Center on Slide 1 */
+    .hero-center {
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(56, 189, 248, 0.15);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      color: var(--primary);
+      padding: 6px 16px;
+      border-radius: 50px;
+      font-size: 12px;
+      font-weight: 800;
+      margin-bottom: 16px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="deck-container">
+
+    <!-- Header -->
+    <div class="deck-header">
+      <div class="brand-pill">
+        💧 AGUA <span>YA PRO</span>
+      </div>
+      <div class="slide-counter" id="counter">1 / 8</div>
+    </div>
+
+    <!-- Slide Body -->
+    <div class="slide-body">
+
+      <!-- Slide 1: Portada -->
+      <div class="slide active hero-center">
+        <div class="hero-badge">✨ PLATAFORMA EJECUTIVA B2B</div>
+        <h2 class="slide-title" style="font-size: 42px; margin-bottom: 16px;">
+          Despacho Inteligente & <br><span style="color: var(--primary);">Control Total de Flota</span>
+        </h2>
+        <p class="slide-desc" style="text-align: center; font-size: 18px;">
+          Cómo aumentar un <strong>35% las entregas diarias</strong>, ahorrar combustible y blindar la caja de su distribuidora de agua en tiempo real.
+        </p>
+        <button class="cta-btn" onclick="nextSlide()">Comenzar Presentación →</button>
+      </div>
+
+      <!-- Slide 2: Problemas -->
+      <div class="slide">
+        <div class="slide-tag">Diagnóstico del Sector</div>
+        <h2 class="slide-title">Los 4 Ladrones Silenciosos de Rentabilidad</h2>
+        <p class="slide-desc">¿Qué frena el crecimiento de una distribuidora de agua hoy?</p>
+        <div class="pain-grid">
+          <div class="pain-card">
+            <h4>📱 1. El Caos de WhatsApp</h4>
+            <p>Pedidos en chats sueltos, notas de voz perdidas y clientes preguntando "¿por dónde viene mi agua?".</p>
+          </div>
+          <div class="pain-card">
+            <h4>⛽ 2. Rutas a Ciegas</h4>
+            <p>Choferes que cruzan la ciudad sin orden lógico, desperdiciando gasolina y tiempo en tráfico.</p>
+          </div>
+          <div class="pain-card">
+            <h4>💵 3. Fugas de Dinero</h4>
+            <p>Cuadres de caja manuales a las 6:00 PM con billetes desordenados y transferencias sin verificar.</p>
+          </div>
+          <div class="pain-card">
+            <h4>📞 4. Microgestión Telefónica</h4>
+            <p>Llamadas constantes a los choferes para saber si ya entregaron o cuánto cobraron.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Slide 3: Ecosistema -->
+      <div class="slide">
+        <div class="slide-tag">La Solución Integral</div>
+        <h2 class="slide-title">El Ecosistema AGUA YA PRO</h2>
+        <p class="slide-desc">Plataforma 100% en la nube diseñada exclusivamente para plantas purificadoras y distribuidoras.</p>
+        <div class="features-grid">
+          <div class="feature-card">
+            <h4>🖥️ Tablero Central de Despacho</h4>
+            <p>Visibilidad en vivo de pedidos pendientes, asignación en 1 clic y métricas de botellones.</p>
+          </div>
+          <div class="feature-card">
+            <h4>📍 Rastreo GPS Satelital</h4>
+            <p>Supervisión silenciosa en el mapa de cada moto o camión sin consumo de batería.</p>
+          </div>
+          <div class="feature-card">
+            <h4>💵 Cierre de Caja Automático</h4>
+            <p>Conciliación instantánea de efectivo vs. pagos digitales por cada repartidor.</p>
+          </div>
+          <div class="feature-card">
+            <h4>📱 App Móvil para Choferes</h4>
+            <p>Sin descargas pesadas. Direcciones claras y confirmación de entrega en 1 toque.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Slide 4: Despacho Zonal -->
+      <div class="slide">
+        <div class="slide-tag">Ventaja #1: Productividad</div>
+        <h2 class="slide-title">+35% Más Entregas Diarias por Unidad</h2>
+        <p class="slide-desc">Haga que su misma flota actual facture más sin comprar nuevos vehículos.</p>
+        <div class="features-grid">
+          <div class="feature-card">
+            <h4>⚡ Despacho en 1 Clic</h4>
+            <p>Asignación inmediata al chofer más cercano en la zona del pedido.</p>
+          </div>
+          <div class="feature-card">
+            <h4>🔄 Mayor Rotación de Botellones</h4>
+            <p>Menos kilómetros recorridos por entrega = viajes más rápidos y mayor retorno a planta.</p>
+          </div>
+          <div class="feature-card">
+            <h4>⏱️ Alertas de Retraso (>20 min)</h4>
+            <p>El sistema avisa automáticamente si un pedido se demora para resolverlo proactivamente.</p>
+          </div>
+          <div class="feature-card">
+            <h4>⭐ Clientes Fieles</h4>
+            <p>Entregas puntuales que garantizan que el cliente no busque a la competencia.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Slide 5: Control GPS -->
+      <div class="slide">
+        <div class="slide-tag">Ventaja #2: Control de Flota</div>
+        <h2 class="slide-title">Supervisión Satelital en Tiempo Real</h2>
+        <p class="slide-desc">Tenga la certeza absoluta de lo que ocurre en calle minuto a minuto.</p>
+        <div class="features-grid">
+          <div class="feature-card">
+            <h4>🗺️ Mapa GPS Dinámico</h4>
+            <p>Visualice en una sola pantalla todas las motos y camiones desplazándose por la ciudad.</p>
+          </div>
+          <div class="feature-card">
+            <h4>🚫 Cero Desvíos No Autorizados</h4>
+            <p>Elimine paradas personales y el uso indebido de los vehículos de la empresa.</p>
+          </div>
+          <div class="feature-card">
+            <h4>⛽ Ahorro del 15% en Combustible</h4>
+            <p>Rutas más directas y organizadas reducen el consumo innecesario de gasolina.</p>
+          </div>
+          <div class="feature-card">
+            <h4>😌 Tranquilidad para la Gerencia</h4>
+            <p>Supervisión sin fricciones: no necesita llamar a los choferes mientras conducen.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Slide 6: Cierre de Caja -->
+      <div class="slide">
+        <div class="slide-tag">Ventaja #3: Finanzas Blindadas</div>
+        <h2 class="slide-title">Cero Fugas de Dinero & Cierre Instantáneo</h2>
+        <p class="slide-desc">Termine el día con la contabilidad exacta y sin estrés.</p>
+        <div class="features-grid">
+          <div class="feature-card">
+            <h4>💵 Control por Repartidor</h4>
+            <p>El sistema sabe exactamente cuántos botellones y cuánto dinero debe entregar cada chofer.</p>
+          </div>
+          <div class="feature-card">
+            <h4>📲 Validación de Pagos Digitales</h4>
+            <p>Verificación de PagoMóvil/Transferencias por número de referencia, evitando estafas.</p>
+          </div>
+          <div class="feature-card">
+            <h4>📊 Cierre de Caja a las 6:00 PM</h4>
+            <p>Un clic genera el reporte total: efectivo recaudado + banco + botellones entregados.</p>
+          </div>
+          <div class="feature-card">
+            <h4>🛡️ Cero Pérdidas</h4>
+            <p>Elimina pérdidas de botellones "olvidados" o cobros no reportados.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Slide 7: ROI -->
+      <div class="slide">
+        <div class="slide-tag">Retorno de Inversión</div>
+        <h2 class="slide-title">El Software Que Se Paga Solo</h2>
+        <p class="slide-desc">Comparativa del impacto económico mensual para una distribuidora:</p>
+        <table class="roi-table">
+          <thead>
+            <tr>
+              <th>Dolor Operativo</th>
+              <th>Costo Mensual Tradicional</th>
+              <th>Con AGUA YA PRO</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Fugas de efectivo / botellones sin cobrar</td>
+              <td>~$50 a $100 USD / mes</td>
+              <td class="highlight-green">✅ $0 USD (100% Conciliado)</td>
+            </tr>
+            <tr>
+              <td>Desperdicio de gasolina por desvíos</td>
+              <td>~$80 a $150 USD / mes</td>
+              <td class="highlight-green">✅ Ahorro del 15% en Combustible</td>
+            </tr>
+            <tr>
+              <td>Tiempo en cuadres y llamadas manuales</td>
+              <td>~40 horas / mes</td>
+              <td class="highlight-green">✅ Ahorro de 2 horas diarias</td>
+            </tr>
+            <tr>
+              <td>Capacidad de entrega extra</td>
+              <td>Limitada por desorden</td>
+              <td class="highlight-green">✅ +30 a 50 botellones/día</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Slide 8: Cierre & Demo -->
+      <div class="slide hero-center">
+        <div class="hero-badge">🚀 PUESTA EN MARCHA EN 24 HORAS</div>
+        <h2 class="slide-title" style="font-size: 38px; margin-bottom: 14px;">
+          Lleve su Distribuidora al Siguiente Nivel
+        </h2>
+        <p class="slide-desc" style="text-align: center; font-size: 16px;">
+          Hagamos una prueba en vivo con uno de sus choferes hoy mismo.<br>
+          Sin descargas complicadas. Listo para operar en 24 a 48 horas.
+        </p>
+        <div style="display: flex; gap: 14px; margin-top: 10px;">
+          <a href="https://agua-ya.vercel.app" target="_blank" style="text-decoration: none;">
+            <button class="cta-btn">Ver Demostración en Vivo 🌐</button>
+          </a>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Footer Nav -->
+    <div class="deck-footer">
+      <button class="nav-btn" id="prevBtn" onclick="prevSlide()" disabled>← Anterior</button>
+      <button class="nav-btn" id="nextBtn" onclick="nextSlide()">Siguiente →</button>
+    </div>
+
+  </div>
+
+  <script>
+    let currentSlide = 0;
+    const slides = document.querySelectorAll('.slide');
+    const totalSlides = slides.length;
+    const counter = document.getElementById('counter');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+
+    function updateSlide() {
+      slides.forEach((s, idx) => {
+        s.classList.toggle('active', idx === currentSlide);
+      });
+      counter.innerText = `${currentSlide + 1} / ${totalSlides}`;
+      prevBtn.disabled = currentSlide === 0;
+      nextBtn.disabled = currentSlide === totalSlides - 1;
+    }
+
+    function nextSlide() {
+      if (currentSlide < totalSlides - 1) {
+        currentSlide++;
+        updateSlide();
+      }
+    }
+
+    function prevSlide() {
+      if (currentSlide > 0) {
+        currentSlide--;
+        updateSlide();
+      }
+    }
+
+    // Keyboard navigation (Arrow keys / Space)
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === 'Space') {
+        nextSlide();
+      } else if (e.key === 'ArrowLeft') {
+        prevSlide();
+      }
+    });
+  </script>
+
+</body>
+</html>

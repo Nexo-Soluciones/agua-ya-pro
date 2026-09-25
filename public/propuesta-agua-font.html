@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Propuesta Comercial - AGUA FONT | Agua YA PRO</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #0284c7;
+      --primary-dark: #0369a1;
+      --secondary: #0f172a;
+      --text: #1e293b;
+      --text-muted: #64748b;
+      --bg: #ffffff;
+      --card-bg: #f8fafc;
+      --border: #e2e8f0;
+      --success: #10b981;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      color: var(--text);
+      background-color: #f1f5f9;
+      line-height: 1.6;
+      padding: 40px 20px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .page-container {
+      max-width: 850px;
+      margin: 0 auto;
+      background: #ffffff;
+      padding: 50px 60px;
+      border-radius: 20px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+      position: relative;
+    }
+
+    /* Print Button Floating */
+    .print-btn-bar {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      z-index: 1000;
+    }
+
+    .print-btn {
+      background: linear-gradient(135deg, #0284c7, #0369a1);
+      color: white;
+      border: none;
+      padding: 14px 28px;
+      border-radius: 50px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 10px 25px rgba(2, 132, 199, 0.4);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: all 0.2s ease;
+    }
+
+    .print-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 30px rgba(2, 132, 199, 0.5);
+    }
+
+    /* Header */
+    .doc-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding-bottom: 25px;
+      border-bottom: 2px solid #e0f2fe;
+      margin-bottom: 35px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-logo {
+      width: 44px;
+      height: 44px;
+      background: linear-gradient(135deg, #0284c7, #0ea5e9);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 900;
+      font-size: 20px;
+    }
+
+    .brand-text h1 {
+      font-size: 24px;
+      font-weight: 900;
+      letter-spacing: -0.5px;
+      color: var(--secondary);
+    }
+
+    .brand-text h1 span {
+      color: var(--primary);
+    }
+
+    .brand-text p {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .meta-box {
+      text-align: right;
+      font-size: 13px;
+    }
+
+    .meta-box .doc-id {
+      font-weight: 800;
+      color: var(--primary);
+      font-size: 14px;
+    }
+
+    .meta-box .date {
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .meta-box .client-badge {
+      display: inline-block;
+      margin-top: 6px;
+      background: #e0f2fe;
+      color: #0369a1;
+      font-weight: 800;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      text-transform: uppercase;
+    }
+
+    /* Titles */
+    h2.section-title {
+      font-size: 17px;
+      font-weight: 800;
+      color: var(--secondary);
+      margin: 30px 0 15px 0;
+      padding-left: 12px;
+      border-left: 4px solid var(--primary);
+      letter-spacing: -0.3px;
+    }
+
+    p {
+      font-size: 14px;
+      color: #334155;
+      margin-bottom: 14px;
+    }
+
+    /* Highlight Banner */
+    .callout-box {
+      background: linear-gradient(to right, #f0f9ff, #f8fafc);
+      border: 1px solid #bae6fd;
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin: 20px 0;
+    }
+
+    .callout-box h4 {
+      font-size: 14px;
+      font-weight: 800;
+      color: #0369a1;
+      margin-bottom: 6px;
+    }
+
+    .callout-box p {
+      font-size: 13px;
+      margin-bottom: 0;
+      color: #0c4a6e;
+    }
+
+    /* Grid of modules */
+    .modules-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+      margin: 20px 0;
+    }
+
+    .module-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 16px;
+    }
+
+    .module-card h4 {
+      font-size: 13px;
+      font-weight: 750;
+      color: var(--secondary);
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .module-card p {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 0;
+      line-height: 1.45;
+    }
+
+    /* Pricing Table */
+    table.pricing-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+
+    table.pricing-table th,
+    table.pricing-table td {
+      padding: 12px 14px;
+      font-size: 13px;
+      text-align: left;
+    }
+
+    table.pricing-table th {
+      background: #f1f5f9;
+      color: var(--secondary);
+      font-weight: 800;
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+      text-transform: uppercase;
+    }
+
+    table.pricing-table tr:nth-child(even) {
+      background: #f8fafc;
+    }
+
+    table.pricing-table tr td:last-child,
+    table.pricing-table th:last-child {
+      text-align: right;
+    }
+
+    table.pricing-table .price-val {
+      font-weight: 800;
+      color: var(--primary-dark);
+      font-size: 14px;
+    }
+
+    .recommended-row {
+      background: #f0fdf4 !important;
+      font-weight: 600;
+    }
+
+    .recommended-badge {
+      background: #dcfce7;
+      color: #15803d;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 800;
+      margin-left: 6px;
+    }
+
+    /* Legal clauses */
+    .legal-clause {
+      background: #fafafa;
+      border-left: 3px solid #cbd5e1;
+      padding: 10px 14px;
+      margin-bottom: 10px;
+      border-radius: 0 8px 8px 0;
+    }
+
+    .legal-clause strong {
+      font-size: 13px;
+      color: var(--secondary);
+      display: block;
+      margin-bottom: 3px;
+    }
+
+    .legal-clause p {
+      font-size: 12px;
+      color: #475569;
+      margin-bottom: 0;
+      line-height: 1.5;
+    }
+
+    /* Signatures */
+    .signatures-box {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+      margin-top: 40px;
+      padding-top: 30px;
+      border-top: 1px solid var(--border);
+    }
+
+    .sig-line {
+      border-top: 1px dashed #94a3b8;
+      margin-top: 50px;
+      padding-top: 8px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .sig-name {
+      font-weight: 800;
+      color: var(--secondary);
+      font-size: 13px;
+    }
+
+    /* Print Styles */
+    @media print {
+      body {
+        background: transparent;
+        padding: 0;
+      }
+
+      .page-container {
+        max-width: 100%;
+        padding: 25px 30px;
+        box-shadow: none;
+        border-radius: 0;
+      }
+
+      .print-btn-bar {
+        display: none;
+      }
+
+      .page-break {
+        page-break-before: always;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Floating Print Button -->
+  <div class="print-btn-bar">
+    <button class="print-btn" onclick="window.print()">
+      🖨️ Imprimir / Guardar como PDF
+    </button>
+  </div>
+
+  <div class="page-container">
+
+    <!-- Document Header -->
+    <header class="doc-header">
+      <div class="brand">
+        <div class="brand-logo">💧</div>
+        <div class="brand-text">
+          <h1>AGUA <span>YA PRO</span></h1>
+          <p>SISTEMAS DE DESPACHO & CONTROL DE FLOTA EN TIEMPO REAL</p>
+        </div>
+      </div>
+      <div class="meta-box">
+        <div class="doc-id">PROPUESTA Nº P-AF-2026-002</div>
+        <div class="date">Fecha: 21 de Septiembre de 2026</div>
+        <div>Validez: 30 días calendario</div>
+        <div class="client-badge">CLIENTE: AGUA FONT</div>
+      </div>
+    </header>
+
+    <!-- Section 1 -->
+    <h2 class="section-title">1. RESUMEN EJECUTIVO PARA AGUA FONT</h2>
+    <p>
+      La presente propuesta técnica y económica formaliza la implementación y licenciamiento del sistema <strong>AGUA YA PRO</strong> en la modalidad <em>Software as a Service (SaaS)</em>, diseñado exclusivamente para modernizar, blindar y agilizar la operación diaria de distribución de <strong>AGUA FONT</strong>.
+    </p>
+
+    <!-- Section 2 -->
+    <h2 class="section-title">2. DEFINICIÓN TÉCNICA: ¿QUÉ ES UNA UNIDAD DE REPARTO?</h2>
+    <div class="callout-box">
+      <h4>🛵🚚 Definición Operativa de Unidad de Reparto:</h4>
+      <p>
+        Se considera <strong>una (1) Unidad de Reparto</strong> a cualquier vehículo físico en calle (motocicleta, motocarro, camioneta o camión) con su conductor asignado que cuente con credenciales para recibir pedidos y transmitir su ubicación GPS en tiempo real.<br>
+        <strong>Personal de Oficina:</strong> Dueños, supervisores y despachadores cuentan con <strong>acceso ilimitado</strong> al panel de control en todos los planes sin costo adicional.
+      </p>
+    </div>
+
+    <!-- Section 3 -->
+    <h2 class="section-title">3. MÓDULOS INCLUIDOS EN LA PLATAFORMA</h2>
+    <div class="modules-grid">
+      <div class="module-card">
+        <h4>🖥️ Tablero Central de Despacho</h4>
+        <p>Asignación de pedidos en 1 clic por zonas, indicadores en vivo y alertas automáticas de demora mayor a 20 minutos.</p>
+      </div>
+      <div class="module-card">
+        <h4>📍 Rastreo Satelital GPS en Vivo</h4>
+        <p>Monitoreo silencioso y en tiempo real de cada chofer/motorizado en el mapa sin consumo excesivo de batería ni datos.</p>
+      </div>
+      <div class="module-card">
+        <h4>💵 Liquidación & Cierre de Caja</h4>
+        <p>Conciliación instantánea de botellones entregados vs. dinero recaudado (Efectivo, PagoMóvil, Transferencias).</p>
+      </div>
+      <div class="module-card">
+        <h4>📱 App Móvil Ultraligera</h4>
+        <p>Interfaz web sin descargas pesadas para los choferes: visualización de direcciones, teléfonos y confirmación de entrega táctil.</p>
+      </div>
+    </div>
+
+    <!-- Section 4 -->
+    <h2 class="section-title">4. PLANES DE INVERSIÓN Y LICENCIAMIENTO MENSUAL</h2>
+    <table class="pricing-table">
+      <thead>
+        <tr>
+          <th>Plan de Servicio</th>
+          <th>Capacidad de Flota</th>
+          <th>Soporte & Infraestructura</th>
+          <th>Inversión Mensual</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Plan Emprendedor</strong></td>
+          <td>Hasta 3 Vehículos / Motos</td>
+          <td>Nube 24/7 + Soporte Horario Hábil</td>
+          <td class="price-val">$65 USD / mes</td>
+        </tr>
+        <tr class="recommended-row">
+          <td>
+            <strong>Plan Crecimiento</strong>
+            <span class="recommended-badge">RECOMENDADO</span>
+          </td>
+          <td>Hasta 8 Vehículos / Motos</td>
+          <td>Prioritario 12/7 + Backups Diarios</td>
+          <td class="price-val">$120 USD / mes</td>
+        </tr>
+        <tr>
+          <td><strong>Plan Corporativo</strong></td>
+          <td>9 a 20+ Vehículos</td>
+          <td>Soporte VIP 24/7 + Servidor Dedicado</td>
+          <td class="price-val">$195 USD / mes</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p style="font-size: 13px; color: #0284c7; font-weight: 700;">
+      🎁 Beneficio por Pago Anual: 20% de descuento (Paga 10 meses y disfruta de 12 meses de servicio continuo).
+    </p>
+
+    <div class="callout-box" style="background: #f8fafc; border-color: #cbd5e1;">
+      <h4>⚙️ Costo Único de Implementación & Onboarding: $95 USD (Pago único)</h4>
+      <p style="color: #475569;">
+        Incluye creación de infraestructura en la nube, aislamiento de base de datos para AGUA FONT, configuración de subdominio exclusivo con certificado SSL y sesión de capacitación personalizada para oficina y choferes.
+      </p>
+    </div>
+
+    <!-- Section 5 -->
+    <h2 class="section-title page-break">5. MARCO LEGAL & TÉRMINOS DE SERVICIO</h2>
+    
+    <div class="legal-clause">
+      <strong>⚖️ Cláusula 1: Dependencias del Cliente y Plazos de Entrega</strong>
+      <p>
+        El Proveedor garantiza la puesta en marcha operativa en 24 a 48 horas hábiles. Este plazo comenzará a regir <strong>únicamente a partir del momento en que AGUA FONT suministre la totalidad de la información requerida</strong> (listado de choferes, clientes base y confirmación de pago de activación). Demoras imputables al cliente prorrogarán automáticamente la fecha de entrega por un período equivalente, sin lugar a penalidades ni reclamos contra el Proveedor.
+      </p>
+    </div>
+
+    <div class="legal-clause">
+      <strong>⚖️ Cláusula 2: Propiedad Intelectual y Licencia de Uso</strong>
+      <p>
+        El código fuente, arquitectura, diseño y marcas de AGUA YA PRO son propiedad intelectual exclusiva del Proveedor. La contratación otorga a AGUA FONT una licencia de uso no exclusiva, intransferible y temporal (SaaS) mientras se mantenga al día con el pago de su suscripción.
+      </p>
+    </div>
+
+    <div class="legal-clause">
+      <strong>⚖️ Cláusula 3: Continuidad del Servicio y Política de Pagos</strong>
+      <p>
+        El servicio se factura por mes anticipado. En caso de mora superior a cinco (5) días continuos, el Proveedor se reserva el derecho de suspender preventivamente el acceso hasta la regularización, preservando los datos por hasta 30 días.
+      </p>
+    </div>
+
+    <div class="legal-clause">
+      <strong>⚖️ Cláusula 4: Confidencialidad y Seguridad de Datos</strong>
+      <p>
+        Toda la información comercial, clientes y ventas de AGUA FONT se mantendrá bajo estricta confidencialidad mediante bases de datos aisladas y cifrado SSL en la nube.
+      </p>
+    </div>
+
+    <!-- Signatures -->
+    <div class="signatures-box">
+      <div>
+        <div class="sig-name">Por el Cliente: EMPRESA AGUA FONT</div>
+        <div class="sig-line">
+          Nombre y Firma del Representante Autorizado<br>
+          C.I. / RIF: ___________________________<br>
+          Fecha: _____ / _____ / 2026
+        </div>
+      </div>
+      <div>
+        <div class="sig-name">Por el Proveedor: AGUA YA PRO</div>
+        <div class="sig-line">
+          Equipo de Consultoría & Desarrollo Tecnológico<br>
+          Firma Autorizada y Sello Comercial<br>
+          Fecha: 21 / 09 / 2026
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

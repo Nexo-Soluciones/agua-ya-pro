@@ -1,0 +1,83 @@
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id                 Int       @id @default(autoincrement())
+  nombre             String
+  telefono           String    @unique
+  rol                String    @default("REPARTIDOR") // "ADMIN" | "REPARTIDOR"
+  estado             String    @default("ACTIVO")     // "ACTIVO" | "INACTIVO"
+  
+  // GPS Location Fields for Real-Time Tracking
+  lat                Float?
+  lng                Float?
+  speed              Float?
+  heading            Float?
+  lastLocationUpdate DateTime?
+
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  pedidosAsignados   Order[]       @relation("DriverOrders")
+  deliveryLogs       DeliveryLog[]
+}
+
+model Client {
+  id             Int      @id @default(autoincrement())
+  nombre         String
+  telefono       String   @unique
+  direccion      String
+  barrioSector   String?
+  tipoCliente    String   @default("VIEJO") // "VIEJO" | "NUEVO"
+  precioAcordado Float?   @default(7000)
+  notasUbicacion String?
+  lat            Float?
+  lng            Float?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  pedidos Order[]
+}
+
+model Order {
+  id                 Int       @id @default(autoincrement())
+  numeroPedido       Int?
+  clienteId          Int
+  cliente            Client    @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  repartidorId       Int?
+  repartidor         User?     @relation("DriverOrders", fields: [repartidorId], references: [id], onDelete: SetNull)
+  
+  cantidadBotellones Int       @default(1)
+  precioUnitario     Float     @default(7000)
+  montoTotal         Float     @default(7000)
+  
+  metodoPago         String    @default("EFECTIVO") // "EFECTIVO" | "NEQUI" | "TRANSFERENCIA" | "CREDITO"
+  estadoPago         String    @default("PENDIENTE") // "PENDIENTE" | "VERIFICADO" | "RECHAZADO"
+  estadoEntrega      String    @default("PENDIENTE") // "PENDIENTE" | "EN_CAMINO" | "ENTREGADO" | "CANCELADO"
+  comprobanteRef     String?
+  numeroRemision     String?
+  
+  fechaCreacion      DateTime  @default(now())
+  fechaEntrega       DateTime?
+  updatedAt          DateTime  @updatedAt
+
+  logs DeliveryLog[]
+}
+
+model DeliveryLog {
+  id           Int      @id @default(autoincrement())
+  pedidoId     Int
+  pedido       Order    @relation(fields: [pedidoId], references: [id], onDelete: Cascade)
+  repartidorId Int
+  repartidor   User     @relation(fields: [repartidorId], references: [id], onDelete: Cascade)
+  horaMarcado  DateTime @default(now())
+  estadoNuevo  String
+  notasEntrega String?
+}
