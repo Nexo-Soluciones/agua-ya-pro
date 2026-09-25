@@ -12,6 +12,9 @@ model User {
   id                 Int       @id @default(autoincrement())
   nombre             String
   telefono           String    @unique
+  email              String?   @unique
+  passwordHash       String?   // Para acceso administrativo
+  pinHash            String?   // PIN de 4 dígitos hasheado con bcrypt para repartidores
   rol                String    @default("REPARTIDOR") // "ADMIN" | "REPARTIDOR"
   estado             String    @default("ACTIVO")     // "ACTIVO" | "INACTIVO"
   
@@ -27,6 +30,7 @@ model User {
 
   pedidosAsignados   Order[]       @relation("DriverOrders")
   deliveryLogs       DeliveryLog[]
+  auditLogs          AuditLog[]
 }
 
 model Client {
@@ -81,3 +85,16 @@ model DeliveryLog {
   estadoNuevo  String
   notasEntrega String?
 }
+
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  usuarioId Int?
+  rol       String
+  accion    String
+  detalles  String?
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  usuario   User?    @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+}
+

@@ -175,7 +175,10 @@ export function DriverView({ driver, orders, onUpdateOrder }: DriverViewProps) {
             <span className="text-[10px] text-emerald-100 uppercase font-black block">Por Repartir</span>
           </div>
           <button
-            onClick={() => {
+            onClick={async () => {
+              try {
+                await fetch('/api/auth/logout', { method: 'POST' });
+              } catch {}
               if (typeof window !== 'undefined') {
                 localStorage.removeItem(`driver_authenticated_${driver.id}`);
                 localStorage.removeItem('agua_ya_active_driver_id');
@@ -183,7 +186,7 @@ export function DriverView({ driver, orders, onUpdateOrder }: DriverViewProps) {
               }
             }}
             className="text-[10px] font-black bg-slate-900/60 hover:bg-slate-900 text-emerald-200 hover:text-white px-2.5 py-1 rounded-xl border border-emerald-400/20 transition flex items-center gap-1"
-            title="Cerrar sesión de este dispositivo"
+            title="Cerrar turno y salir de este dispositivo"
           >
             <span>🔒 Salir</span>
           </button>

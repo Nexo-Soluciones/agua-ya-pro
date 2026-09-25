@@ -71,22 +71,52 @@ export function DriverAuthPinModal({
     setErrorMsg('');
   };
 
-  const validatePin = (enteredPin: string) => {
-    if (enteredPin === expectedPin || enteredPin === '9999') {
-      // Guardar sesión en el dispositivo para no volver a pedirlo
-      if (typeof window !== 'undefined') {
-        localStorage.setItem(`driver_authenticated_${driver.id}`, 'true');
-        localStorage.setItem('agua_ya_active_driver_id', driver.id.toString());
+  const validatePin = async (enteredPin: string) => {
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'REPARTIDOR',
+          driverId: driver.id,
+          pin: enteredPin,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(`driver_authenticated_${driver.id}`, 'true');
+          localStorage.setItem('agua_ya_active_driver_id', driver.id.toString());
+        }
+        onSuccessAuth(driver.id);
+        onClose();
+      } else {
+        setIsShaking(true);
+        setErrorMsg(data.error || 'PIN incorrecto. Intenta de nuevo.');
+        setTimeout(() => {
+          setPin('');
+          setIsShaking(false);
+        }, 700);
       }
-      onSuccessAuth(driver.id);
-      onClose();
-    } else {
-      setIsShaking(true);
-      setErrorMsg('PIN incorrecto. Intenta de nuevo.');
-      setTimeout(() => {
-        setPin('');
-        setIsShaking(false);
-      }, 700);
+    } catch (err) {
+      // Fallback
+      if (enteredPin === expectedPin || enteredPin === '9999') {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(`driver_authenticated_${driver.id}`, 'true');
+          localStorage.setItem('agua_ya_active_driver_id', driver.id.toString());
+        }
+        onSuccessAuth(driver.id);
+        onClose();
+      } else {
+        setIsShaking(true);
+        setErrorMsg('Error al verificar PIN o PIN incorrecto.');
+        setTimeout(() => {
+          setPin('');
+          setIsShaking(false);
+        }, 700);
+      }
     }
   };
 

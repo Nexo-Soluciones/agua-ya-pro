@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Droplets, ShieldCheck, Truck, RefreshCw } from 'lucide-react';
+import { Droplets, ShieldCheck, Truck, RefreshCw, LogOut } from 'lucide-react';
 import { DriverAuthPinModal } from './DriverAuthPinModal';
+import { AdminAuthModal } from './AdminAuthModal';
 
 interface HeaderProps {
   currentRole: 'ADMIN' | string;
@@ -25,6 +26,18 @@ export function Header({
     telefono?: string;
   } | null>(null);
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
+  const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
+
+  const handleSelectAdmin = () => {
+    if (typeof window !== 'undefined') {
+      const isAuth = localStorage.getItem('aguaya_admin_authenticated') === 'true';
+      if (!isAuth) {
+        setIsAdminModalOpen(true);
+        return;
+      }
+    }
+    setCurrentRole('ADMIN');
+  };
 
   const handleSelectDriver = (driverIdStr: string) => {
     const driverId = parseInt(driverIdStr, 10);
@@ -44,6 +57,17 @@ export function Header({
 
   const handleSuccessAuth = (driverId: number) => {
     setCurrentRole(driverId.toString());
+  };
+
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch {}
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('aguaya_admin_authenticated');
+      localStorage.removeItem('agua_ya_active_driver_id');
+      window.location.reload();
+    }
   };
 
   return (
@@ -86,7 +110,7 @@ export function Header({
             {/* Role Switcher Pill */}
             <div className="h-11 bg-slate-900/90 p-1 rounded-xl flex items-center gap-1.5 border border-sky-500/30 shadow-inner">
               <button
-                onClick={() => setCurrentRole('ADMIN')}
+                onClick={handleSelectAdmin}
                 className={`h-9 px-3.5 rounded-lg text-xs sm:text-sm font-extrabold transition flex items-center gap-2 ${
                   currentRole === 'ADMIN'
                     ? 'bg-gradient-to-r from-sky-500 to-blue-600 text-white shadow-md'
@@ -123,18 +147,35 @@ export function Header({
                 </select>
               </div>
             </div>
+
+            {/* Logout Icon */}
+            <button
+              onClick={handleLogout}
+              className="h-11 w-11 bg-slate-900/80 hover:bg-rose-950/60 text-slate-400 hover:text-rose-300 rounded-xl border border-slate-700/60 hover:border-rose-500/40 transition flex items-center justify-center"
+              title="Cerrar sesión"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </header>
 
-      {/* Modal de Autenticación de PIN */}
+      {/* Modal de Autenticación de PIN Repartidor */}
       <DriverAuthPinModal
         isOpen={isPinModalOpen}
         onClose={() => setIsPinModalOpen(false)}
         driver={selectedDriverForPin}
         onSuccessAuth={handleSuccessAuth}
       />
+
+      {/* Modal de Autenticación de Administrador */}
+      <AdminAuthModal
+        isOpen={isAdminModalOpen}
+        onClose={() => setIsAdminModalOpen(false)}
+        onSuccess={() => setCurrentRole('ADMIN')}
+      />
     </>
   );
 }
+
 
