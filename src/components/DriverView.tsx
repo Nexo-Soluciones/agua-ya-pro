@@ -402,27 +402,36 @@ export function DriverView({ driver, orders, onUpdateOrder }: DriverViewProps) {
                   </div>
 
                   {/* Product & Payment Summary */}
-                  <div className="flex items-center justify-between bg-white/90 p-3.5 rounded-2xl border border-slate-200 shadow-xs mt-3">
-                    <div className="flex items-center gap-2.5">
-                      <div className="p-2 rounded-xl bg-sky-100 text-sky-600">
-                        <Droplet className="w-5 h-5 fill-sky-500" />
-                      </div>
-                      <div>
-                        <span className="font-black text-slate-900 text-base block">
-                          {order.cantidadBotellones} Botellón{order.cantidadBotellones > 1 ? 'es' : ''} (20L)
-                        </span>
-                        <span className="text-xs text-slate-500 font-medium">
-                          ${order.precioUnitario.toLocaleString('es-CO')} c/u
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="text-right">
-                      <span className="text-[10px] text-slate-400 font-bold uppercase block">Monto a Cobrar:</span>
-                      <span className="text-xl font-black text-slate-900">
-                        ${order.montoTotal.toLocaleString('es-CO')}
+                  <div className="bg-white/90 p-3.5 rounded-2xl border border-slate-200 shadow-xs mt-3 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                        📦 Productos a Entregar:
+                      </span>
+                      <span className="text-xs font-extrabold text-sky-800 bg-sky-100 px-2.5 py-0.5 rounded-lg border border-sky-200">
+                        Cobrar: ${order.montoTotal.toLocaleString('es-CO')}
                       </span>
                     </div>
+
+                    {order.items && order.items.length > 0 ? (
+                      <div className="divide-y divide-slate-100">
+                        {order.items.map((item: any) => (
+                          <div key={item.id} className="py-1 flex items-center justify-between text-xs">
+                            <div className="flex items-center gap-2">
+                              <span className="font-black text-sky-600 bg-sky-50 px-2 py-0.5 rounded-md border border-sky-200 text-xs">
+                                {item.cantidad}x
+                              </span>
+                              <span className="font-extrabold text-slate-800">{item.nombreProducto}</span>
+                            </div>
+                            <span className="font-bold text-slate-600">${item.subtotal.toLocaleString('es-CO')}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 text-sm font-bold text-slate-800">
+                        <Droplet className="w-4 h-4 text-sky-500 shrink-0" />
+                        <span>{order.resumenProductos || `${order.cantidadBotellones} Botellón(es) 20L`}</span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Action Buttons */}

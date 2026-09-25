@@ -502,15 +502,31 @@ export function AdminDashboard({
 
                   {/* Order Items & Payment Info */}
                   <div className="bg-white/45 backdrop-blur-sm p-3.5 rounded-2xl border border-white/60 space-y-2 mb-4 shadow-xs">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-slate-600 font-medium">Cantidad:</span>
-                      <span className="font-extrabold text-slate-900 bg-sky-100 text-sky-800 px-2 py-0.5 rounded-lg">
-                        {order.cantidadBotellones} Botellón{order.cantidadBotellones > 1 ? 'es' : ''} (20L)
+                    <div>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                        Detalle de Productos:
                       </span>
+                      {order.items && order.items.length > 0 ? (
+                        <div className="space-y-1">
+                          {order.items.map((item: any) => (
+                            <div key={item.id} className="flex items-center justify-between text-xs">
+                              <span className="font-bold text-slate-800">
+                                <span className="text-sky-600 font-black">{item.cantidad}x</span> {item.nombreProducto}
+                              </span>
+                              <span className="font-semibold text-slate-600">${item.subtotal.toLocaleString('es-CO')}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="font-extrabold text-slate-900 bg-sky-100 text-sky-800 px-2 py-0.5 rounded-lg text-xs inline-block">
+                          {order.resumenProductos || `${order.cantidadBotellones} Botellón(es) 20L`}
+                        </span>
+                      )}
                     </div>
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-slate-600 font-medium">Total a Cobrar:</span>
-                      <span className="font-black text-slate-900 text-sm">
+
+                    <div className="flex items-center justify-between text-xs pt-1.5 border-t border-slate-200">
+                      <span className="text-slate-600 font-bold">Total a Cobrar:</span>
+                      <span className="font-black text-slate-900 text-base">
                         ${order.montoTotal.toLocaleString('es-CO')}
                       </span>
                     </div>

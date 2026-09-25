@@ -27,6 +27,11 @@ export async function GET(req: NextRequest) {
       include: {
         cliente: true,
         repartidor: true,
+        items: {
+          include: {
+            producto: true,
+          },
+        },
       },
       orderBy: { fechaCreacion: 'desc' },
     });
@@ -57,6 +62,7 @@ export async function POST(req: NextRequest) {
       notasUbicacion,
       repartidorId,
       cantidadBotellones,
+      items, // Multi-product items array
       metodoPago,
       numeroRemision,
     } = body;
@@ -98,11 +104,62 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Cliente no encontrado' }, { status: 404 });
     }
 
-    const qty = parseInt(cantidadBotellones || '1', 10);
-    const unitPrice = requestUnitPrice !== undefined && requestUnitPrice !== null
-      ? parseFloat(requestUnitPrice)
-      : (client.precioAcordado || (client.tipoCliente === 'NUEVO' ? 8000 : 7000));
-    const totalAmount = qty * unitPrice;
+    // Process items or fallback to single botellon calculation
+    let calculatedTotal = 0;
+    let totalBotellonesQty = 0;
+    let orderItemsData: Array<{
+      productoId?: number | null;
+      nombreProducto: string;
+      cantidad: number;
+      precioUnitario: number;
+      subtotal: number;
+    }> = [];
+    let summaryText = '';
+
+    if (Array.isArray(items) && items.length > 0) {
+      orderItemsData = items.map((item: any) => {
+        const itemQty = parseInt(item.cantidad || '1', 10);
+        const itemPrice = parseFloat(item.precioUnitario || '0');
+        const itemSubtotal = itemQty * itemPrice;
+        calculatedTotal += itemSubtotal;
+
+        if (item.nombreProducto.toUpperCase().includes('BOTELLON')) {
+          totalBotellonesQty += itemQty;
+        }
+
+        return {
+          productoId: item.productoId ? parseInt(item.productoId, 10) : null,
+          nombreProducto: item.nombreProducto,
+          cantidad: itemQty,
+          precioUnitario: itemPrice,
+          subtotal: itemSubtotal,
+        };
+      });
+
+      summaryText = orderItemsData.map((i) => `${i.cantidad}x ${i.nombreProducto}`).join(', ');
+      if (totalBotellonesQty === 0) {
+        totalBotellonesQty = orderItemsData.reduce((sum, i) => sum + i.cantidad, 0);
+      }
+    } else {
+      // Legacy fallback
+      const qty = parseInt(cantidadBotellones || '1', 10);
+      const unitPrice = requestUnitPrice !== undefined && requestUnitPrice !== null
+        ? parseFloat(requestUnitPrice)
+        : (client.precioAcordado || (client.tipoCliente === 'NUEVO' ? 8000 : 7000));
+      calculatedTotal = qty * unitPrice;
+      totalBotellonesQty = qty;
+      summaryText = `${qty}x BOTELLON (20L)`;
+
+      orderItemsData = [
+        {
+          productoId: null,
+          nombreProducto: 'BOTELLON (20L)',
+          cantidad: qty,
+          precioUnitario: unitPrice,
+          subtotal: calculatedTotal,
+        },
+      ];
+    }
 
     // Get order count for numeroPedido
     const orderCount = await db.order.count();
@@ -113,17 +170,22 @@ export async function POST(req: NextRequest) {
         numeroPedido,
         clienteId: targetClientId,
         repartidorId: repartidorId ? parseInt(repartidorId, 10) : null,
-        cantidadBotellones: qty,
-        precioUnitario: unitPrice,
-        montoTotal: totalAmount,
+        cantidadBotellones: totalBotellonesQty,
+        precioUnitario: orderItemsData[0]?.precioUnitario || 7000,
+        montoTotal: calculatedTotal,
+        resumenProductos: summaryText,
         metodoPago: metodoPago || 'EFECTIVO',
         estadoPago: metodoPago === 'EFECTIVO' ? 'VERIFICADO' : 'PENDIENTE',
         estadoEntrega: repartidorId ? 'EN_CAMINO' : 'PENDIENTE',
         numeroRemision: numeroRemision || null,
+        items: {
+          create: orderItemsData,
+        },
       },
       include: {
         cliente: true,
         repartidor: true,
+        items: true,
       },
     });
 

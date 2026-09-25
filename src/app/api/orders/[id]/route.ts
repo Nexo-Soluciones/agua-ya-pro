@@ -64,6 +64,11 @@ export async function PATCH(
       include: {
         cliente: true,
         repartidor: true,
+        items: {
+          include: {
+            producto: true,
+          },
+        },
       },
     });
 

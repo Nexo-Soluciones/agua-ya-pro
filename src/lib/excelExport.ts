@@ -165,7 +165,7 @@ export function exportStyledExcel(data: ReportData) {
           <td class="th-main">Cliente</td>
           <td class="th-main">Teléfono</td>
           <td class="th-main">Repartidor</td>
-          <td class="th-main">Bot.</td>
+          <td class="th-main">Productos Entregados</td>
           <td class="th-main">Método Pago</td>
           <td class="th-main">Total ($)</td>
           <td class="th-main">Hora Entrega</td>
@@ -181,7 +181,7 @@ export function exportStyledExcel(data: ReportData) {
             <td class="td-cell td-bold">${o.cliente?.nombre || 'Cliente General'}</td>
             <td class="td-cell">${o.cliente?.telefono || '-'}</td>
             <td class="td-cell">${o.repartidor?.nombre || 'Sin Asignar'}</td>
-            <td class="td-cell td-center td-bold" style="color: #0284c7;">${o.cantidadBotellones}</td>
+            <td class="td-cell td-bold" style="color: #0284c7; font-size: 8.5pt;">${o.resumenProductos || (o.items && o.items.length > 0 ? o.items.map((i: any) => `${i.cantidad}x ${i.nombreProducto}`).join(', ') : `${o.cantidadBotellones} Botellón(es)`)}</td>
             <td class="td-cell td-center td-bold" style="${
               o.metodoPago === 'EFECTIVO'
                 ? 'background-color: #d1fae5; color: #065f46;'
