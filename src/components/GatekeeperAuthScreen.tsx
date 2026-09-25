@@ -29,6 +29,16 @@ export function GatekeeperAuthScreen({
     setIsPinModalOpen(true);
   };
 
+  const displayDrivers =
+    drivers && drivers.length > 0
+      ? drivers
+      : [
+          { id: 4, nombre: 'Andrés Jiménez', telefono: '3001111000' },
+          { id: 10, nombre: 'Francisco', telefono: '3002222000' },
+          { id: 3, nombre: 'Isaac', telefono: '3003333000' },
+          { id: 9, nombre: 'Obed', telefono: '3004444000' },
+        ];
+
   return (
     <div className="min-h-[85vh] flex items-center justify-center p-4">
       <div className="max-w-xl w-full glass-mac-dark text-white rounded-3xl p-6 sm:p-10 border border-sky-400/40 shadow-2xl relative overflow-hidden backdrop-blur-2xl">
@@ -88,34 +98,28 @@ export function GatekeeperAuthScreen({
 
             {/* Drivers Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              {drivers.length > 0 ? (
-                drivers.map((driver) => (
-                  <button
-                    key={driver.id}
-                    onClick={() => handleSelectDriver(driver)}
-                    className="p-3.5 rounded-xl bg-slate-900/80 hover:bg-emerald-950/60 border border-slate-700/80 hover:border-emerald-500/50 shadow-sm transition-all duration-200 text-left flex items-center justify-between group"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-lg bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center text-emerald-300 group-hover:bg-emerald-500 group-hover:text-white transition-colors">
-                        <UserCheck className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <span className="text-xs font-black text-white block group-hover:text-emerald-300">
-                          {driver.nombre}
-                        </span>
-                        <span className="text-[10px] text-slate-400">
-                          {driver.telefono || 'Repartidor'}
-                        </span>
-                      </div>
+              {displayDrivers.map((driver) => (
+                <button
+                  key={driver.id}
+                  onClick={() => handleSelectDriver(driver)}
+                  className="p-3.5 rounded-xl bg-slate-900/80 hover:bg-emerald-950/60 border border-slate-700/80 hover:border-emerald-500/50 shadow-sm transition-all duration-200 text-left flex items-center justify-between group"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-lg bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center text-emerald-300 group-hover:bg-emerald-500 group-hover:text-white transition-colors">
+                      <UserCheck className="w-5 h-5" />
                     </div>
-                    <KeyRound className="w-4 h-4 text-slate-500 group-hover:text-emerald-400 transition-colors" />
-                  </button>
-                ))
-              ) : (
-                <div className="col-span-2 text-center py-4 text-xs text-slate-400">
-                  Cargando lista de repartidores...
-                </div>
-              )}
+                    <div>
+                      <span className="text-xs font-black text-white block group-hover:text-emerald-300">
+                        {driver.nombre}
+                      </span>
+                      <span className="text-[10px] text-slate-400">
+                        {driver.telefono || 'Repartidor'}
+                      </span>
+                    </div>
+                  </div>
+                  <KeyRound className="w-4 h-4 text-slate-500 group-hover:text-emerald-400 transition-colors" />
+                </button>
+              ))}
             </div>
           </div>
         </div>

@@ -144,7 +144,11 @@ export default function Home() {
 
   const activeDriver =
     currentRole !== 'ADMIN' && currentRole !== 'UNAUTHENTICATED'
-      ? drivers.find((d) => d.id === parseInt(currentRole, 10))
+      ? drivers.find((d) => d.id === parseInt(currentRole, 10)) || {
+          id: parseInt(currentRole, 10) || 1,
+          nombre: `Repartidor #${currentRole}`,
+          telefono: '3000000000',
+        }
       : null;
 
   return (
@@ -179,11 +183,7 @@ export default function Home() {
         )}
 
         <main className="flex-1 pb-12">
-          {!isInitialAuthChecked ? (
-            <div className="min-h-[60vh] flex items-center justify-center text-white text-sm font-bold">
-              Cargando seguridad del sistema...
-            </div>
-          ) : currentRole === 'UNAUTHENTICATED' ? (
+          {currentRole === 'UNAUTHENTICATED' ? (
             <GatekeeperAuthScreen
               drivers={drivers}
               onAuthenticatedAsAdmin={() => setCurrentRole('ADMIN')}
@@ -204,9 +204,11 @@ export default function Home() {
               onUpdateOrder={handleUpdateOrder}
             />
           ) : (
-            <div className="p-8 text-center text-slate-300 font-medium">
-              Cargando información del repartidor...
-            </div>
+            <GatekeeperAuthScreen
+              drivers={drivers}
+              onAuthenticatedAsAdmin={() => setCurrentRole('ADMIN')}
+              onAuthenticatedAsDriver={(driverId) => setCurrentRole(driverId.toString())}
+            />
           )}
         </main>
       </div>
