@@ -5,6 +5,7 @@ import { Header } from '@/components/Header';
 import { AdminDashboard } from '@/components/AdminDashboard';
 import { DriverView } from '@/components/DriverView';
 import { NewOrderModal } from '@/components/NewOrderModal';
+import { GatekeeperAuthScreen } from '@/components/GatekeeperAuthScreen';
 import {
   requestNotificationPermission,
   sendPushNotification,
@@ -12,14 +13,32 @@ import {
 } from '@/lib/notifications';
 
 export default function Home() {
-  const [currentRole, setCurrentRole] = useState<'ADMIN' | string>('ADMIN');
+  const [currentRole, setCurrentRole] = useState<'ADMIN' | 'UNAUTHENTICATED' | string>('UNAUTHENTICATED');
   const [orders, setOrders] = useState<any[]>([]);
   const [drivers, setDrivers] = useState<any[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isNewOrderModalOpen, setIsNewOrderModalOpen] = useState(false);
+  const [isInitialAuthChecked, setIsInitialAuthChecked] = useState(false);
 
   const prevOrdersCountRef = useRef<number | null>(null);
   const isFetchingRef = useRef(false);
+
+  // Check initial authentication state from localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const activeDriverId = localStorage.getItem('agua_ya_active_driver_id');
+      const isAdminAuth = localStorage.getItem('aguaya_admin_authenticated') === 'true';
+
+      if (activeDriverId) {
+        setCurrentRole(activeDriverId);
+      } else if (isAdminAuth) {
+        setCurrentRole('ADMIN');
+      } else {
+        setCurrentRole('UNAUTHENTICATED');
+      }
+      setIsInitialAuthChecked(true);
+    }
+  }, []);
 
   // Request Notification Permissions on load
   useEffect(() => {
@@ -67,7 +86,6 @@ export default function Home() {
             const minutesInRoute = Math.floor((now - updatedTime) / 60000);
 
             if (minutesInRoute >= 20 && minutesInRoute % 10 === 0) {
-              // Trigger delay warning chime & push every 10 min past 20 min threshold
               playNotificationSound('DELAY_ALERT');
               sendPushNotification(
                 `⚠️ ¡Alerta de Demora! Pedido #${order.numeroPedido}`,
@@ -125,7 +143,7 @@ export default function Home() {
   };
 
   const activeDriver =
-    currentRole !== 'ADMIN'
+    currentRole !== 'ADMIN' && currentRole !== 'UNAUTHENTICATED'
       ? drivers.find((d) => d.id === parseInt(currentRole, 10))
       : null;
 
@@ -150,16 +168,28 @@ export default function Home() {
 
       {/* Main Content Layer */}
       <div className="relative z-10 flex-1 flex flex-col">
-        <Header
-          currentRole={currentRole}
-          setCurrentRole={setCurrentRole}
-          drivers={drivers}
-          onRefresh={fetchData}
-          isRefreshing={isRefreshing}
-        />
+        {currentRole !== 'UNAUTHENTICATED' && (
+          <Header
+            currentRole={currentRole}
+            setCurrentRole={setCurrentRole}
+            drivers={drivers}
+            onRefresh={fetchData}
+            isRefreshing={isRefreshing}
+          />
+        )}
 
         <main className="flex-1 pb-12">
-          {currentRole === 'ADMIN' ? (
+          {!isInitialAuthChecked ? (
+            <div className="min-h-[60vh] flex items-center justify-center text-white text-sm font-bold">
+              Cargando seguridad del sistema...
+            </div>
+          ) : currentRole === 'UNAUTHENTICATED' ? (
+            <GatekeeperAuthScreen
+              drivers={drivers}
+              onAuthenticatedAsAdmin={() => setCurrentRole('ADMIN')}
+              onAuthenticatedAsDriver={(driverId) => setCurrentRole(driverId.toString())}
+            />
+          ) : currentRole === 'ADMIN' ? (
             <AdminDashboard
               orders={orders}
               drivers={drivers}
@@ -174,7 +204,7 @@ export default function Home() {
               onUpdateOrder={handleUpdateOrder}
             />
           ) : (
-            <div className="p-8 text-center text-slate-500 font-medium">
+            <div className="p-8 text-center text-slate-300 font-medium">
               Cargando información del repartidor...
             </div>
           )}
@@ -190,3 +220,4 @@ export default function Home() {
     </div>
   );
 }
+
