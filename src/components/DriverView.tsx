@@ -373,17 +373,32 @@ export function DriverView({ driver, orders, onUpdateOrder }: DriverViewProps) {
                       </div>
                     </div>
 
-                    <a
-                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-                        `${order.cliente.direccion}, ${order.cliente.barrioSector || ''}`
-                      )}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 shadow-sm"
-                    >
-                      <Navigation className="w-4 h-4 text-sky-400" />
-                      <span>Abrir GPS en Google Maps / Waze</span>
-                    </a>
+                    {/* Dual GPS Navigation Buttons: Google Maps & Waze */}
+                    <div className="grid grid-cols-2 gap-2 pt-1">
+                      <a
+                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                          `${order.cliente.direccion}, ${order.cliente.barrioSector || ''}`
+                        )}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="py-2.5 px-2 bg-slate-900 hover:bg-slate-800 active:scale-[0.98] text-white rounded-xl text-xs font-black transition flex items-center justify-center gap-1.5 shadow-sm border border-slate-700"
+                      >
+                        <Navigation className="w-3.5 h-3.5 text-sky-400" />
+                        <span>Google Maps</span>
+                      </a>
+
+                      <a
+                        href={`https://waze.com/ul?q=${encodeURIComponent(
+                          `${order.cliente.direccion}, ${order.cliente.barrioSector || ''}`
+                        )}&navigate=yes`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="py-2.5 px-2 bg-gradient-to-r from-cyan-600 to-sky-600 hover:from-cyan-500 hover:to-sky-500 active:scale-[0.98] text-white rounded-xl text-xs font-black transition flex items-center justify-center gap-1.5 shadow-sm shadow-cyan-500/20"
+                      >
+                        <span className="text-sm">🚗</span>
+                        <span>Abrir en Waze</span>
+                      </a>
+                    </div>
                   </div>
 
                   {/* Product & Payment Summary */}

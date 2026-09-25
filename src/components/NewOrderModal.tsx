@@ -418,7 +418,7 @@ export function NewOrderModal({
                   <option value="">-- Asignar Luego --</option>
                   {drivers.map((d) => (
                     <option key={d.id} value={d.id}>
-                      {d.nombre} ({d._count?.pedidosAsignados || 0} activos)
+                      {d.nombre} ({d._count?.pedidosAsignados || 0} pendientes)
                     </option>
                   ))}
                 </select>
