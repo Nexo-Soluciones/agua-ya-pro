@@ -26,19 +26,25 @@ interface AuditLogsModalProps {
 export function AuditLogsModal({ isOpen, onClose }: AuditLogsModalProps) {
   const [logs, setLogs] = useState<AuditLogItem[]>([]);
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
   const [filterUser, setFilterUser] = useState('TODOS');
   const [searchQuery, setSearchQuery] = useState('');
 
   const fetchLogs = async () => {
     setLoading(true);
+    setErrorMsg('');
     try {
       const res = await fetch('/api/audit');
       if (res.ok) {
         const data = await res.json();
         setLogs(data);
+      } else {
+        const err = await res.json();
+        setErrorMsg(err.error || 'Acceso restringido a Administrador General.');
       }
     } catch (e) {
       console.error('Error fetching audit logs:', e);
+      setErrorMsg('Error al conectar con el servidor.');
     } finally {
       setLoading(false);
     }
@@ -140,7 +146,13 @@ export function AuditLogsModal({ isOpen, onClose }: AuditLogsModalProps) {
 
         {/* Audit Log Timeline */}
         <div className="p-5 overflow-y-auto flex-1 divide-y divide-slate-100 space-y-3">
-          {loading && logs.length === 0 ? (
+          {errorMsg ? (
+            <div className="py-12 text-center text-rose-600 bg-rose-50/50 rounded-2xl p-6 border border-rose-200 m-4">
+              <Shield className="w-10 h-10 mx-auto mb-2 text-rose-500" />
+              <p className="text-sm font-black text-rose-900">Acceso Exclusivo de Admin General</p>
+              <p className="text-xs text-rose-600 mt-1 max-w-md mx-auto">{errorMsg}</p>
+            </div>
+          ) : loading && logs.length === 0 ? (
             <div className="py-12 text-center text-slate-400">
               <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-sky-500" />
               <p className="text-xs font-semibold">Cargando bitácora de auditoría...</p>

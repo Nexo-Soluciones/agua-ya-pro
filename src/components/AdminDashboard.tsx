@@ -172,16 +172,22 @@ export function AdminDashboard({
           </p>
         </div>
 
-        {/* 5 Symmetrical Action Buttons */}
+        {/* Action Buttons */}
         <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
-          <button
-            onClick={() => setIsAuditModalOpen(true)}
-            className="h-11 px-3.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl shadow-md transition-all duration-200 hover:scale-105 active:scale-95 flex items-center justify-center gap-1.5 text-xs sm:text-sm shrink-0 border border-slate-700"
-            title="Ver trazabilidad y auditoría de operaciones"
-          >
-            <History className="w-4 h-4 text-sky-400" />
-            <span>Trazabilidad</span>
-          </button>
+          {/* Trazabilidad: ONLY visible to Admin General */}
+          {typeof window !== 'undefined' &&
+            (localStorage.getItem('aguaya_admin_email')?.toLowerCase() === 'admin@aguaya.com' ||
+             localStorage.getItem('aguaya_admin_name')?.toLowerCase().includes('administrador') ||
+             localStorage.getItem('aguaya_admin_name')?.toLowerCase().includes('admin general')) && (
+            <button
+              onClick={() => setIsAuditModalOpen(true)}
+              className="h-11 px-3.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl shadow-md transition-all duration-200 hover:scale-105 active:scale-95 flex items-center justify-center gap-1.5 text-xs sm:text-sm shrink-0 border border-slate-700 ring-2 ring-sky-500/40"
+              title="Módulo exclusivo de Admin General: Trazabilidad y Auditoría"
+            >
+              <History className="w-4 h-4 text-sky-400" />
+              <span>Trazabilidad</span>
+            </button>
+          )}
 
           <button
             onClick={() => setIsClosureModalOpen(true)}
