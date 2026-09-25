@@ -1,5 +1,6 @@
 import { db } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession, recordAudit } from '@/lib/auth';
 
 export async function GET(req: NextRequest) {
   try {
@@ -50,6 +51,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
+    const session = await getServerSession();
     const body = await req.json();
     const {
       clienteId,
@@ -65,7 +67,10 @@ export async function POST(req: NextRequest) {
       items, // Multi-product items array
       metodoPago,
       numeroRemision,
+      creadoPor: requestCreadoPor,
     } = body;
+
+    const finalCreadoPor = requestCreadoPor || session?.nombre || 'Administración';
 
     let targetClientId = clienteId;
 
@@ -178,6 +183,7 @@ export async function POST(req: NextRequest) {
         estadoPago: metodoPago === 'EFECTIVO' ? 'VERIFICADO' : 'PENDIENTE',
         estadoEntrega: repartidorId ? 'EN_CAMINO' : 'PENDIENTE',
         numeroRemision: numeroRemision || null,
+        creadoPor: finalCreadoPor,
         items: {
           create: orderItemsData,
         },
@@ -187,6 +193,14 @@ export async function POST(req: NextRequest) {
         repartidor: true,
         items: true,
       },
+    });
+
+    // Record audit event for operational traceability
+    await recordAudit({
+      usuarioId: session?.userId || null,
+      rol: session?.rol || 'ADMIN',
+      accion: 'CREAR_PEDIDO',
+      detalles: `Pedido #${numeroPedido} creado por [${finalCreadoPor}] para ${client.nombre}. Total: $${calculatedTotal.toLocaleString('es-CO')} (${summaryText})`,
     });
 
     return NextResponse.json(order, { status: 201 });

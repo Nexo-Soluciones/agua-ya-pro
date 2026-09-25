@@ -294,6 +294,7 @@ export function NewOrderModal({
           })),
           metodoPago,
           numeroRemision: numeroRemision.trim() || undefined,
+          creadoPor: typeof window !== 'undefined' ? (localStorage.getItem('aguaya_admin_name') || 'Administración') : 'Administración',
         }),
       });
 

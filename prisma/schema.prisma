@@ -68,6 +68,7 @@ model Order {
   estadoEntrega      String    @default("PENDIENTE") // "PENDIENTE" | "EN_CAMINO" | "ENTREGADO" | "CANCELADO"
   comprobanteRef     String?
   numeroRemision     String?
+  creadoPor          String?   // Nombre del usuario/operador administrativo que creó o gestionó el pedido
   
   fechaCreacion      DateTime  @default(now())
   fechaEntrega       DateTime?

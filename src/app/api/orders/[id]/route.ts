@@ -1,11 +1,13 @@
 import { db } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession, recordAudit } from '@/lib/auth';
 
 export async function PATCH(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
+    const session = await getServerSession();
     const orderId = parseInt(params.id, 10);
     const body = await req.json();
     const {
@@ -16,7 +18,10 @@ export async function PATCH(
       comprobanteRef,
       numeroRemision,
       notasEntrega,
+      operadorNombre,
     } = body;
+
+    const finalOperador = operadorNombre || session?.nombre || 'Administración';
 
     const existingOrder = await db.order.findUnique({
       where: { id: orderId },
@@ -82,6 +87,30 @@ export async function PATCH(
           estadoNuevo: updatedOrder.estadoEntrega,
           notasEntrega: notasEntrega || null,
         },
+      });
+    }
+
+    // Record audit event for operational traceability
+    const auditDetails = [];
+    if (estadoEntrega && estadoEntrega !== existingOrder.estadoEntrega) {
+      auditDetails.push(`Estado de entrega cambiado a [${estadoEntrega}]`);
+    }
+    if (repartidorId && repartidorId !== existingOrder.repartidorId) {
+      auditDetails.push(`Repartidor asignado: ${updatedOrder.repartidor?.nombre || repartidorId}`);
+    }
+    if (estadoPago && estadoPago !== existingOrder.estadoPago) {
+      auditDetails.push(`Estado de pago: [${estadoPago}]`);
+    }
+    if (metodoPago && metodoPago !== existingOrder.metodoPago) {
+      auditDetails.push(`Método de pago: [${metodoPago}]`);
+    }
+
+    if (auditDetails.length > 0) {
+      await recordAudit({
+        usuarioId: session?.userId || null,
+        rol: session?.rol || 'ADMIN',
+        accion: 'ACTUALIZAR_PEDIDO',
+        detalles: `Pedido #${updatedOrder.numeroPedido || orderId} actualizado por [${finalOperador}]: ${auditDetails.join(', ')}`,
       });
     }
 

@@ -155,11 +155,12 @@ export function exportStyledExcel(data: ReportData) {
 
         <!-- Tabla 2: Detalle Cronológico de Entregas -->
         <tr>
-          <td colspan="12" class="section-header">📍 2. DETALLE DE ENTREGAS (DIRECCIONES & CONTROL DE REMISIONES)</td>
+          <td colspan="13" class="section-header">📍 2. DETALLE DE ENTREGAS (DIRECCIONES & CONTROL DE REMISIONES)</td>
         </tr>
         <tr>
           <td class="th-main">Pedido #</td>
           <td class="th-main">Nº Remisión</td>
+          <td class="th-main">Registrado Por</td>
           <td colspan="2" class="th-main">Dirección Exacta (Prioridad)</td>
           <td class="th-main">Barrio</td>
           <td class="th-main">Cliente</td>
@@ -176,6 +177,7 @@ export function exportStyledExcel(data: ReportData) {
           <tr class="${index % 2 === 1 ? 'tr-zebra' : ''}">
             <td class="td-cell td-center td-bold">#${o.numeroPedido || o.id}</td>
             <td class="td-cell td-remision">${o.numeroRemision ? 'REM: ' + o.numeroRemision : 'Sin Remisión'}</td>
+            <td class="td-cell td-bold" style="color: #475569;">👤 ${o.creadoPor || 'Oficina'}</td>
             <td colspan="2" class="td-cell td-address">📍 ${o.cliente?.direccion || 'N/A'}</td>
             <td class="td-cell">${o.cliente?.barrioSector || '-'}</td>
             <td class="td-cell td-bold">${o.cliente?.nombre || 'Cliente General'}</td>

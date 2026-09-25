@@ -111,14 +111,19 @@ export function Header({
             <div className="h-11 bg-slate-900/90 p-1 rounded-xl flex items-center gap-1.5 border border-sky-500/30 shadow-inner">
               <button
                 onClick={handleSelectAdmin}
-                className={`h-9 px-3.5 rounded-lg text-xs sm:text-sm font-extrabold transition flex items-center gap-2 ${
+                className={`h-9 px-3 rounded-lg text-xs sm:text-sm font-extrabold transition flex items-center gap-1.5 ${
                   currentRole === 'ADMIN'
                     ? 'bg-gradient-to-r from-sky-500 to-blue-600 text-white shadow-md'
                     : 'text-slate-300 hover:text-white hover:bg-slate-800'
                 }`}
+                title="Cambiar operador o ingresar como Admin"
               >
-                <ShieldCheck className="w-4 h-4" />
-                <span>Oficina (Admin)</span>
+                <ShieldCheck className="w-4 h-4 shrink-0" />
+                <span className="truncate max-w-[130px] sm:max-w-none">
+                  {currentRole === 'ADMIN' && typeof window !== 'undefined' && localStorage.getItem('aguaya_admin_name')
+                    ? `👤 ${localStorage.getItem('aguaya_admin_name')?.split(' ')[0]}`
+                    : 'Oficina'}
+                </span>
               </button>
 
               <div className="h-5 w-px bg-slate-700 mx-0.5" />

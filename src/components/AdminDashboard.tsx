@@ -22,11 +22,13 @@ import {
   UserPlus,
   Users,
   BarChart3,
+  History,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { DailyClosureModal } from './DailyClosureModal';
 import { NewClientModal } from './NewClientModal';
 import { ManageDriversModal } from './ManageDriversModal';
+import { AuditLogsModal } from './AuditLogsModal';
 import { HeroVideoBanner } from './HeroVideoBanner';
 
 // Lazy loading diferido para mapas y gráficas con skeletons elegantes
@@ -97,6 +99,7 @@ export function AdminDashboard({
   const [isClosureModalOpen, setIsClosureModalOpen] = useState(false);
   const [isNewClientModalOpen, setIsNewClientModalOpen] = useState(false);
   const [isManageDriversOpen, setIsManageDriversOpen] = useState(false);
+  const [isAuditModalOpen, setIsAuditModalOpen] = useState(false);
 
   // Active jornada orders (excluding CERRADO from active dispatch list)
   const activeJornadaOrders = orders.filter((o) => o.estadoEntrega !== 'CERRADO');
@@ -169,19 +172,28 @@ export function AdminDashboard({
           </p>
         </div>
 
-        {/* 4 Symmetrical Action Buttons */}
-        <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
+        {/* 5 Symmetrical Action Buttons */}
+        <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+          <button
+            onClick={() => setIsAuditModalOpen(true)}
+            className="h-11 px-3.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl shadow-md transition-all duration-200 hover:scale-105 active:scale-95 flex items-center justify-center gap-1.5 text-xs sm:text-sm shrink-0 border border-slate-700"
+            title="Ver trazabilidad y auditoría de operaciones"
+          >
+            <History className="w-4 h-4 text-sky-400" />
+            <span>Trazabilidad</span>
+          </button>
+
           <button
             onClick={() => setIsClosureModalOpen(true)}
-            className="h-11 px-4 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl shadow-md transition-all duration-200 hover:scale-105 active:scale-95 flex items-center justify-center gap-2 text-xs sm:text-sm shrink-0 border border-slate-700"
+            className="h-11 px-3.5 bg-slate-800 hover:bg-slate-750 text-white font-bold rounded-xl shadow-md transition-all duration-200 hover:scale-105 active:scale-95 flex items-center justify-center gap-1.5 text-xs sm:text-sm shrink-0 border border-slate-700"
           >
             <FileSpreadsheet className="w-4 h-4 text-slate-300" />
-            <span>Cierre de Caja</span>
+            <span>Cierre Caja</span>
           </button>
 
           <button
             onClick={() => setIsManageDriversOpen(true)}
-            className="h-11 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-md shadow-emerald-600/25 transition-all duration-200 hover:scale-105 active:scale-95 flex items-center justify-center gap-2 text-xs sm:text-sm shrink-0"
+            className="h-11 px-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-md shadow-emerald-600/25 transition-all duration-200 hover:scale-105 active:scale-95 flex items-center justify-center gap-1.5 text-xs sm:text-sm shrink-0"
           >
             <Users className="w-4 h-4 text-emerald-100" />
             <span>Repartidores ({drivers.length})</span>
@@ -189,15 +201,15 @@ export function AdminDashboard({
 
           <button
             onClick={() => setIsNewClientModalOpen(true)}
-            className="h-11 px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md shadow-blue-600/25 transition-all duration-200 hover:scale-105 active:scale-95 flex items-center justify-center gap-2 text-xs sm:text-sm shrink-0"
+            className="h-11 px-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md shadow-blue-600/25 transition-all duration-200 hover:scale-105 active:scale-95 flex items-center justify-center gap-1.5 text-xs sm:text-sm shrink-0"
           >
             <UserPlus className="w-4 h-4 text-blue-100" />
-            <span>+ Registrar Cliente</span>
+            <span>+ Cliente</span>
           </button>
 
           <button
             onClick={onOpenNewOrderModal}
-            className="h-11 px-5 bg-gradient-to-r from-sky-500 to-sky-600 hover:from-sky-600 hover:to-sky-700 text-white font-black rounded-xl shadow-lg shadow-sky-500/35 transition-all duration-200 hover:scale-105 active:scale-95 flex items-center justify-center gap-2 text-xs sm:text-sm shrink-0"
+            className="h-11 px-4 bg-gradient-to-r from-sky-500 to-sky-600 hover:from-sky-600 hover:to-sky-700 text-white font-black rounded-xl shadow-lg shadow-sky-500/35 transition-all duration-200 hover:scale-105 active:scale-95 flex items-center justify-center gap-1.5 text-xs sm:text-sm shrink-0"
           >
             <Plus className="w-5 h-5 stroke-[2.5]" />
             <span>Nuevo Pedido</span>
@@ -569,6 +581,16 @@ export function AdminDashboard({
                         Ref: <strong>{order.comprobanteRef}</strong>
                       </div>
                     )}
+
+                    {/* Traceability: Operator */}
+                    <div className="flex items-center justify-between text-[11px] pt-1.5 border-t border-slate-200/80 text-slate-500">
+                      <span className="flex items-center gap-1 font-medium">
+                        👤 Registrado por:
+                      </span>
+                      <span className="font-extrabold text-sky-900 bg-sky-100/80 px-2 py-0.5 rounded-md">
+                        {order.creadoPor || 'Oficina'}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
@@ -663,6 +685,12 @@ export function AdminDashboard({
         onDriversUpdated={() => {
           if (onRefreshDrivers) onRefreshDrivers();
         }}
+      />
+
+      {/* Operational Traceability & Audit Logs Modal */}
+      <AuditLogsModal
+        isOpen={isAuditModalOpen}
+        onClose={() => setIsAuditModalOpen(false)}
       />
     </div>
   );
