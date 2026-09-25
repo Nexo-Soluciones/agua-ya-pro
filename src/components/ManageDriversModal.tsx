@@ -302,10 +302,16 @@ export function ManageDriversModal({
                         </div>
                         <div>
                           <p className="font-extrabold text-slate-900 text-sm">{driver.nombre}</p>
-                          <p className="text-xs text-slate-500 flex items-center gap-1">
-                            <Phone className="w-3 h-3 text-slate-400" />
-                            <span>{driver.telefono}</span>
-                          </p>
+                          <div className="flex items-center gap-3 mt-0.5">
+                            <p className="text-xs text-slate-500 flex items-center gap-1">
+                              <Phone className="w-3 h-3 text-slate-400" />
+                              <span>{driver.telefono}</span>
+                            </p>
+                            <span className="text-[11px] font-black bg-sky-100 text-sky-900 border border-sky-200 px-2 py-0.2 rounded-md flex items-center gap-1">
+                              <span>🔑 PIN:</span>
+                              <span>{driver.id === 1 ? '1111' : driver.id === 2 ? '2222' : driver.id === 3 ? '3333' : driver.id === 4 ? '4444' : driver.telefono ? driver.telefono.slice(-4) : `${driver.id}${driver.id}${driver.id}${driver.id}`}</span>
+                            </span>
+                          </div>
                         </div>
                       </div>
 

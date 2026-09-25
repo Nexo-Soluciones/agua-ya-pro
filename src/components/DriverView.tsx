@@ -169,9 +169,24 @@ export function DriverView({ driver, orders, onUpdateOrder }: DriverViewProps) {
           </div>
         </div>
 
-        <div className="text-right bg-white/10 px-3.5 py-2 rounded-2xl backdrop-blur-sm border border-white/10">
-          <span className="text-2xl sm:text-3xl font-black text-white">{activeOrders.length}</span>
-          <span className="text-[10px] text-emerald-100 uppercase font-black block">Por Repartir</span>
+        <div className="flex flex-col items-end gap-2">
+          <div className="text-right bg-white/10 px-3.5 py-1.5 rounded-2xl backdrop-blur-sm border border-white/10">
+            <span className="text-2xl font-black text-white">{activeOrders.length}</span>
+            <span className="text-[10px] text-emerald-100 uppercase font-black block">Por Repartir</span>
+          </div>
+          <button
+            onClick={() => {
+              if (typeof window !== 'undefined') {
+                localStorage.removeItem(`driver_authenticated_${driver.id}`);
+                localStorage.removeItem('agua_ya_active_driver_id');
+                window.location.reload();
+              }
+            }}
+            className="text-[10px] font-black bg-slate-900/60 hover:bg-slate-900 text-emerald-200 hover:text-white px-2.5 py-1 rounded-xl border border-emerald-400/20 transition flex items-center gap-1"
+            title="Cerrar sesión de este dispositivo"
+          >
+            <span>🔒 Salir</span>
+          </button>
         </div>
       </div>
 

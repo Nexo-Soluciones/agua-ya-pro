@@ -98,9 +98,10 @@ export function AdminDashboard({
   const [isNewClientModalOpen, setIsNewClientModalOpen] = useState(false);
   const [isManageDriversOpen, setIsManageDriversOpen] = useState(false);
 
-  // Stats calculation
-  const totalOrders = orders.length;
-  const totalBottles = orders.reduce((sum, o) => sum + o.cantidadBotellones, 0);
+  // Active jornada orders (excluding CERRADO from active dispatch list)
+  const activeJornadaOrders = orders.filter((o) => o.estadoEntrega !== 'CERRADO');
+  const totalOrders = activeJornadaOrders.length;
+  const totalBottles = activeJornadaOrders.reduce((sum, o) => sum + o.cantidadBotellones, 0);
   const pendingCount = orders.filter((o) => o.estadoEntrega === 'PENDIENTE').length;
   const inTransitCount = orders.filter((o) => o.estadoEntrega === 'EN_CAMINO').length;
   const deliveredCount = orders.filter((o) => o.estadoEntrega === 'ENTREGADO').length;
@@ -119,15 +120,15 @@ export function AdminDashboard({
   }).length;
 
   const totalCollectedCash = orders
-    .filter((o) => o.estadoEntrega === 'ENTREGADO' && o.metodoPago === 'EFECTIVO')
+    .filter((o) => (o.estadoEntrega === 'ENTREGADO' || o.estadoEntrega === 'CERRADO') && o.metodoPago === 'EFECTIVO')
     .reduce((sum, o) => sum + o.montoTotal, 0);
 
   const totalCollectedTransfer = orders
-    .filter((o) => o.estadoEntrega === 'ENTREGADO' && (o.metodoPago === 'NEQUI' || o.metodoPago === 'TRANSFERENCIA' || o.metodoPago === 'PAGOMOVIL'))
+    .filter((o) => (o.estadoEntrega === 'ENTREGADO' || o.estadoEntrega === 'CERRADO') && (o.metodoPago === 'NEQUI' || o.metodoPago === 'TRANSFERENCIA' || o.metodoPago === 'PAGOMOVIL'))
     .reduce((sum, o) => sum + o.montoTotal, 0);
 
   const totalCollectedCredit = orders
-    .filter((o) => o.estadoEntrega === 'ENTREGADO' && o.metodoPago === 'CREDITO')
+    .filter((o) => (o.estadoEntrega === 'ENTREGADO' || o.estadoEntrega === 'CERRADO') && o.metodoPago === 'CREDITO')
     .reduce((sum, o) => sum + o.montoTotal, 0);
 
   // Filtered orders
@@ -137,6 +138,8 @@ export function AdminDashboard({
     if (activeFilter === 'ENTREGADO') return o.estadoEntrega === 'ENTREGADO';
     if (activeFilter === 'PAGOS')
       return (o.metodoPago === 'NEQUI' || o.metodoPago === 'TRANSFERENCIA') && o.estadoPago === 'PENDIENTE';
+    if (activeFilter === 'TODOS')
+      return o.estadoEntrega !== 'CERRADO';
     return true;
   });
 
@@ -626,6 +629,7 @@ export function AdminDashboard({
         onClose={() => setIsClosureModalOpen(false)}
         orders={orders}
         drivers={drivers}
+        onRefreshOrders={onRefreshDrivers}
       />
 
 

@@ -1,5 +1,5 @@
-import React from 'react';
-import { X, Printer, DollarSign, Truck, FileSpreadsheet } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, Printer, DollarSign, Truck, FileSpreadsheet, Lock, CheckCircle2, AlertTriangle, RefreshCw } from 'lucide-react';
 import { exportStyledExcel } from '@/lib/excelExport';
 
 interface DailyClosureModalProps {
@@ -7,6 +7,7 @@ interface DailyClosureModalProps {
   onClose: () => void;
   orders: any[];
   drivers: any[];
+  onRefreshOrders?: () => void;
 }
 
 export function DailyClosureModal({
@@ -14,7 +15,12 @@ export function DailyClosureModal({
   onClose,
   orders,
   drivers,
+  onRefreshOrders,
 }: DailyClosureModalProps) {
+  const [isClosingDaily, setIsClosingDaily] = useState(false);
+  const [closureMessage, setClosureMessage] = useState<string | null>(null);
+  const [showConfirmClose, setShowConfirmClose] = useState(false);
+
   if (!isOpen) return null;
 
   const todayStr = new Date().toLocaleDateString('es-CO', {
@@ -89,9 +95,41 @@ export function DailyClosureModal({
     window.print();
   };
 
+  // Ejecutar Cierre Definitivo de Caja (Archiva los pedidos entregados)
+  const handleExecuteDailyClose = async () => {
+    setIsClosingDaily(true);
+    try {
+      const res = await fetch('/api/orders/daily-close', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      if (!res.ok) {
+        throw new Error('Error al ejecutar el cierre');
+      }
+
+      const data = await res.json();
+      setClosureMessage(`✅ ${data.message}`);
+      setShowConfirmClose(false);
+
+      if (onRefreshOrders) {
+        onRefreshOrders();
+      }
+
+      setTimeout(() => {
+        setClosureMessage(null);
+        onClose();
+      }, 2500);
+    } catch (err: any) {
+      alert(`Error al ejecutar cierre: ${err.message}`);
+    } finally {
+      setIsClosingDaily(false);
+    }
+  };
+
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto font-sans">
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden border border-slate-200 animate-in fade-in zoom-in duration-150 my-8 print:shadow-none print:border-none print:m-0 print:max-w-none print:rounded-none">
+    <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto font-sans print-report-modal">
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden border border-slate-200 animate-in fade-in zoom-in duration-150 my-8 print-report-card">
         {/* Header */}
         <div className="bg-slate-900 text-white px-6 py-5 flex items-center justify-between print:bg-white print:text-black print:p-0 print:border-b-2 print:border-slate-800 print:pb-4">
           <div className="flex items-center gap-3">
@@ -111,18 +149,27 @@ export function DailyClosureModal({
           <div className="flex items-center gap-2 print:hidden">
             <button
               onClick={handleExportExcel}
-              className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black rounded-xl shadow-md shadow-emerald-600/20 transition flex items-center gap-2 hover:scale-105 active:scale-95"
+              className="px-3.5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black rounded-xl shadow-md shadow-emerald-600/20 transition flex items-center gap-1.5 hover:scale-105 active:scale-95"
             >
               <FileSpreadsheet className="w-4 h-4" />
-              <span>Exportar Informe Excel (.XLSX)</span>
+              <span className="hidden sm:inline">Excel</span> (.XLSX)
             </button>
 
             <button
               onClick={handlePrint}
-              className="px-4 py-2.5 bg-sky-600 hover:bg-sky-700 text-white text-xs font-black rounded-xl shadow-md shadow-sky-600/20 transition flex items-center gap-2 hover:scale-105 active:scale-95"
+              className="px-3.5 py-2.5 bg-sky-600 hover:bg-sky-700 text-white text-xs font-black rounded-xl shadow-md shadow-sky-600/20 transition flex items-center gap-1.5 hover:scale-105 active:scale-95"
             >
               <Printer className="w-4 h-4" />
-              <span>Imprimir / PDF Membretado</span>
+              <span>Imprimir / PDF</span>
+            </button>
+
+            <button
+              onClick={() => setShowConfirmClose(true)}
+              className="px-3.5 py-2.5 bg-gradient-to-r from-amber-500 to-rose-600 hover:from-amber-600 hover:to-rose-700 text-white text-xs font-black rounded-xl shadow-md transition flex items-center gap-1.5 hover:scale-105 active:scale-95"
+              title="Archivar entregas del día y limpiar despacho para mañana"
+            >
+              <Lock className="w-4 h-4" />
+              <span>Cierre Definitivo</span>
             </button>
 
             <button
@@ -134,231 +181,181 @@ export function DailyClosureModal({
           </div>
         </div>
 
+        {/* Modal de Confirmación de Cierre Definitivo */}
+        {showConfirmClose && (
+          <div className="bg-amber-50 border-b border-amber-200 p-5 animate-in fade-in print:hidden">
+            <div className="flex items-start gap-3.5">
+              <div className="p-2.5 bg-amber-200 text-amber-900 rounded-2xl shrink-0">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+              <div className="flex-1">
+                <h4 className="font-black text-slate-900 text-sm">¿Deseas ejecutar el Cierre Definitivo de Caja?</h4>
+                <p className="text-xs text-slate-600 mt-0.5">
+                  Esta acción archivará los <strong>{deliveredOrders.length} pedidos entregados</strong> del día. La pantalla de despacho quedará completamente limpia con 0 pedidos para iniciar las operaciones de la siguiente jornada.
+                </p>
+                <div className="flex items-center gap-2.5 mt-3">
+                  <button
+                    onClick={handleExecuteDailyClose}
+                    disabled={isClosingDaily}
+                    className="px-4 py-2 bg-slate-900 hover:bg-black text-white text-xs font-black rounded-xl shadow-sm transition flex items-center gap-1.5 disabled:opacity-50"
+                  >
+                    {isClosingDaily ? (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        <span>Archivando y Limpiando...</span>
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>Sí, Confirmar Cierre Diario</span>
+                      </>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => setShowConfirmClose(false)}
+                    className="px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold rounded-xl transition"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Banner de Éxito al Cerrar */}
+        {closureMessage && (
+          <div className="bg-emerald-600 text-white p-4 font-black text-center text-xs animate-in fade-in print:hidden">
+            {closureMessage}
+          </div>
+        )}
+
         {/* Content Body */}
         <div className="p-6 space-y-6 max-h-[80vh] overflow-y-auto print:max-h-none print:overflow-visible print:p-0">
           {/* Executive Summary Cards */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-200">
-              <span className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider block">
-                💵 Efectivo en Mano
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 avoid-page-break">
+            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 print:bg-white print:border-slate-300">
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Botellones Entregados</span>
+              <span className="text-2xl sm:text-3xl font-black text-sky-700 block mt-1">
+                {totalBottles} <span className="text-sm font-semibold text-slate-400">unid.</span>
               </span>
+              <span className="text-[10px] text-slate-400 block mt-0.5">{deliveredOrders.length} entregas totales</span>
+            </div>
+
+            <div className="bg-emerald-50/70 p-4 rounded-2xl border border-emerald-200 print:bg-white print:border-slate-300">
+              <span className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider block">Recaudo Efectivo</span>
               <span className="text-2xl sm:text-3xl font-black text-emerald-700 block mt-1">
                 ${totalCashCollected.toLocaleString('es-CO')}
               </span>
-              <span className="text-[11px] text-emerald-600 font-medium mt-0.5 block">
-                Físico a entregar
-              </span>
+              <span className="text-[10px] text-emerald-600 font-semibold block mt-0.5">En caja física</span>
             </div>
 
-            <div className="bg-purple-50 p-4 rounded-2xl border border-purple-200">
-              <span className="text-[11px] font-bold text-purple-800 uppercase tracking-wider block">
-                📲 Nequi / Transf.
-              </span>
+            <div className="bg-purple-50/70 p-4 rounded-2xl border border-purple-200 print:bg-white print:border-slate-300">
+              <span className="text-[11px] font-bold text-purple-800 uppercase tracking-wider block">Nequi / Bancos</span>
               <span className="text-2xl sm:text-3xl font-black text-purple-700 block mt-1">
                 ${totalTransferCollected.toLocaleString('es-CO')}
               </span>
-              <span className="text-[11px] text-purple-600 font-medium mt-0.5 block">
-                Cuentas bancarias
-              </span>
+              <span className="text-[10px] text-purple-600 font-semibold block mt-0.5">Transferencias</span>
             </div>
 
-            <div className="bg-amber-50 p-4 rounded-2xl border border-amber-200">
-              <span className="text-[11px] font-bold text-amber-800 uppercase tracking-wider block">
-                📝 A Crédito (Cartera)
-              </span>
+            <div className="bg-amber-50/70 p-4 rounded-2xl border border-amber-200 print:bg-white print:border-slate-300">
+              <span className="text-[11px] font-bold text-amber-800 uppercase tracking-wider block">A Crédito (Por Cobrar)</span>
               <span className="text-2xl sm:text-3xl font-black text-amber-700 block mt-1">
                 ${totalCreditCollected.toLocaleString('es-CO')}
               </span>
-              <span className="text-[11px] text-amber-600 font-medium mt-0.5 block">
-                Pendiente de cobro
-              </span>
+              <span className="text-[10px] text-amber-600 font-semibold block mt-0.5">Cuentas por cobrar</span>
             </div>
+          </div>
 
-            <div className="bg-sky-50 p-4 rounded-2xl border border-sky-200">
-              <span className="text-[11px] font-bold text-sky-900 uppercase tracking-wider block">
-                💧 Botellones
+          {/* Gran Total Banner */}
+          <div className="bg-gradient-to-r from-slate-900 to-sky-950 text-white p-5 rounded-2xl flex items-center justify-between border border-sky-900/50 print:bg-slate-100 print:text-slate-900 print:border-slate-300 avoid-page-break">
+            <div>
+              <span className="text-xs font-black uppercase tracking-wider text-sky-300 print:text-slate-700 block">
+                Total Consolidado Facturado
               </span>
-              <span className="text-2xl sm:text-3xl font-black text-sky-900 block mt-1">
-                {totalBottles}
-              </span>
-              <span className="text-[11px] text-sky-700 font-medium mt-0.5 block">
-                En {deliveredOrders.length} entregas
+              <p className="text-2xl sm:text-3xl font-black text-emerald-400 print:text-slate-900">
+                ${grandTotal.toLocaleString('es-CO')} COP
+              </p>
+            </div>
+            <div className="text-right">
+              <span className="text-xs text-slate-300 print:text-slate-600 block">Total en Caja (Efectivo + Banco):</span>
+              <span className="text-lg font-black text-white print:text-emerald-700">
+                ${(totalCashCollected + totalTransferCollected).toLocaleString('es-CO')}
               </span>
             </div>
           </div>
 
-          {/* Liquidación por Repartidor */}
-          <div>
-            <h3 className="font-extrabold text-slate-900 text-base mb-3 flex items-center gap-2">
-              <Truck className="w-5 h-5 text-sky-600" />
-              <span>Liquidación por Repartidor (Subtotales y Totales)</span>
+          {/* Desglose por Repartidor */}
+          <div className="space-y-3 avoid-page-break">
+            <h3 className="font-extrabold text-slate-900 text-sm flex items-center gap-2 print:text-black">
+              <Truck className="w-4 h-4 text-sky-600 print:hidden" />
+              <span>Liquidación Detallada por Repartidor</span>
             </h3>
 
-            <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
-              <table className="w-full text-left border-collapse text-xs sm:text-sm">
-                <thead>
-                  <tr className="bg-slate-100 text-slate-700 font-bold uppercase text-[10px] sm:text-[11px] border-b border-slate-200">
-                    <th className="p-3">Repartidor</th>
-                    <th className="p-3 text-center">Entregas</th>
-                    <th className="p-3 text-center">Botellones</th>
-                    <th className="p-3 text-right">Efectivo</th>
-                    <th className="p-3 text-right">Nequi/Transf</th>
-                    <th className="p-3 text-right">A Crédito</th>
-                    <th className="p-3 text-right">Total</th>
+            <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-xs print:border-slate-300">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-100 text-slate-700 font-black uppercase text-[11px] print:bg-slate-200">
+                  <tr>
+                    <th className="py-3 px-4">Repartidor</th>
+                    <th className="py-3 px-3 text-center">Botellones</th>
+                    <th className="py-3 px-3 text-right">Efectivo ($)</th>
+                    <th className="py-3 px-3 text-right">A Crédito ($)</th>
+                    <th className="py-3 px-3 text-right">Transferencia ($)</th>
+                    <th className="py-3 px-4 text-right">Total Facturado</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 font-medium">
-                  {driverBreakdown.map((item) => (
-                    <tr key={item.driver.id} className="hover:bg-slate-50">
-                      <td className="p-3 font-extrabold text-slate-900 flex items-center gap-2">
-                        <span>🚚</span>
-                        <span>{item.driver.nombre}</span>
+                <tbody className="divide-y divide-slate-100 print:divide-slate-200">
+                  {driverBreakdown.map((row) => (
+                    <tr key={row.driver.id} className="hover:bg-slate-50 print:bg-white">
+                      <td className="py-3.5 px-4 font-black text-slate-900">
+                        {row.driver.nombre}
+                        <span className="block text-[10px] text-slate-400 font-semibold print:text-slate-500">
+                          {row.deliveredCount} pedidos entregados
+                        </span>
                       </td>
-                      <td className="p-3 text-center font-bold">{item.deliveredCount}</td>
-                      <td className="p-3 text-center font-bold text-sky-700">{item.bottles}</td>
-                      <td className="p-3 text-right font-black text-emerald-700">
-                        ${item.cash.toLocaleString('es-CO')}
+                      <td className="py-3.5 px-3 text-center font-black text-sky-700">
+                        {row.bottles} unid.
                       </td>
-                      <td className="p-3 text-right font-bold text-purple-700">
-                        ${item.transfer.toLocaleString('es-CO')}
+                      <td className="py-3.5 px-3 text-right font-bold text-emerald-700">
+                        ${row.cash.toLocaleString('es-CO')}
                       </td>
-                      <td className="p-3 text-right font-bold text-amber-700">
-                        ${item.credit.toLocaleString('es-CO')}
+                      <td className="py-3.5 px-3 text-right font-bold text-amber-700">
+                        ${row.credit.toLocaleString('es-CO')}
                       </td>
-                      <td className="p-3 text-right font-black text-slate-900">
-                        ${item.total.toLocaleString('es-CO')}
+                      <td className="py-3.5 px-3 text-right font-bold text-purple-700">
+                        ${row.transfer.toLocaleString('es-CO')}
+                      </td>
+                      <td className="py-3.5 px-4 text-right font-black text-slate-900 text-sm">
+                        ${row.total.toLocaleString('es-CO')}
                       </td>
                     </tr>
                   ))}
                 </tbody>
-                <tfoot>
-                  <tr className="bg-slate-900 text-white font-extrabold text-xs sm:text-sm">
-                    <td className="p-3">TOTAL GENERAL</td>
-                    <td className="p-3 text-center">{deliveredOrders.length}</td>
-                    <td className="p-3 text-center text-sky-300">{totalBottles}</td>
-                    <td className="p-3 text-right text-emerald-400">
-                      ${totalCashCollected.toLocaleString('es-CO')}
-                    </td>
-                    <td className="p-3 text-right text-purple-300">
-                      ${totalTransferCollected.toLocaleString('es-CO')}
-                    </td>
-                    <td className="p-3 text-right text-amber-300">
-                      ${totalCreditCollected.toLocaleString('es-CO')}
-                    </td>
-                    <td className="p-3 text-right text-white font-black">
-                      ${grandTotal.toLocaleString('es-CO')}
-                    </td>
+                <tfoot className="bg-slate-900 text-white font-black print:bg-slate-100 print:text-slate-900">
+                  <tr>
+                    <td className="py-3 px-4">TOTALES</td>
+                    <td className="py-3 px-3 text-center text-sky-300 print:text-slate-900">{totalBottles} unid.</td>
+                    <td className="py-3 px-3 text-right text-emerald-400 print:text-slate-900">${totalCashCollected.toLocaleString('es-CO')}</td>
+                    <td className="py-3 px-3 text-right text-amber-400 print:text-slate-900">${totalCreditCollected.toLocaleString('es-CO')}</td>
+                    <td className="py-3 px-3 text-right text-purple-300 print:text-slate-900">${totalTransferCollected.toLocaleString('es-CO')}</td>
+                    <td className="py-3 px-4 text-right text-white print:text-slate-900 text-sm">${grandTotal.toLocaleString('es-CO')}</td>
                   </tr>
                 </tfoot>
               </table>
             </div>
           </div>
 
-          {/* List of Delivered Orders with Highlighted Address and Remisión */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <h4 className="font-extrabold text-slate-900 text-sm">
-                Detalle de Entregas Realizadas ({deliveredOrders.length})
-              </h4>
-              <span className="text-[11px] text-slate-500 font-semibold">
-                Ordenado con Dirección Prioritaria y Control de Remisiones
-              </span>
-            </div>
-
-            <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
-              {deliveredOrders.length === 0 ? (
-                <div className="p-6 text-center text-slate-400 bg-slate-50 rounded-2xl border border-dashed border-slate-200 font-medium text-xs">
-                  No hay entregas completadas registradas el día de hoy.
-                </div>
-              ) : (
-                deliveredOrders.map((order) => (
-                  <div
-                    key={order.id}
-                    className="bg-white p-3.5 rounded-2xl border border-slate-200 hover:border-slate-300 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs"
-                  >
-                    {/* Priority: Dirección & Cliente */}
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-black text-slate-900 bg-slate-100 px-2 py-0.5 rounded-md text-[11px]">
-                          Pedido #{order.numeroPedido}
-                        </span>
-
-                        <span
-                          className={`font-black px-2.5 py-0.5 rounded-md text-[11px] flex items-center gap-1 ${
-                            order.numeroRemision
-                              ? 'text-blue-900 bg-blue-100 border border-blue-300'
-                              : 'text-amber-800 bg-amber-100 border border-amber-300'
-                          }`}
-                        >
-                          <span>📄 Remisión:</span>
-                          <span className="font-extrabold">{order.numeroRemision || 'S/N (Sin registrar)'}</span>
-                        </span>
-
-                        <span className="text-slate-500 text-[11px] font-semibold">
-                          Repartidor: <strong className="text-slate-800">{order.repartidor?.nombre || 'Sin asignar'}</strong>
-                        </span>
-                      </div>
-
-                      {/* Dirección en grande / destacada */}
-                      <div className="flex items-start gap-1.5 pt-0.5">
-                        <span className="text-rose-500 font-bold text-sm">📍</span>
-                        <div>
-                          <p className="text-slate-950 font-black text-sm tracking-tight">
-                            {order.cliente.direccion}
-                            {order.cliente.barrioSector ? ` — Barrio ${order.cliente.barrioSector}` : ''}
-                          </p>
-                          <p className="text-slate-600 font-semibold text-xs">
-                            Cliente: {order.cliente.nombre} • 📞 {order.cliente.telefono}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Botellones, Método de pago, Subtotal */}
-                    <div className="flex items-center gap-3 self-end md:self-center font-bold text-slate-800 shrink-0">
-                      <span className="bg-sky-100 text-sky-900 px-2.5 py-1 rounded-lg font-black text-xs">
-                        💧 {order.cantidadBotellones} Bot.
-                      </span>
-
-                      <span
-                        className={`px-2.5 py-1 rounded-lg text-xs font-black uppercase ${
-                          order.metodoPago === 'EFECTIVO'
-                            ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                            : order.metodoPago === 'CREDITO'
-                            ? 'bg-amber-100 text-amber-800 border border-amber-200'
-                            : 'bg-purple-100 text-purple-800 border border-purple-200'
-                        }`}
-                      >
-                        {order.metodoPago === 'EFECTIVO'
-                          ? '💵 Efectivo'
-                          : order.metodoPago === 'CREDITO'
-                          ? '📝 A Crédito'
-                          : order.metodoPago === 'NEQUI'
-                          ? '📲 Nequi'
-                          : '🏦 Transferencia'}
-                      </span>
-
-                      <span className="text-sm font-black text-slate-950 bg-slate-100 px-3 py-1 rounded-lg">
-                        ${order.montoTotal.toLocaleString('es-CO')}
-                      </span>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-
           {/* Firmas de Auditoría (Exclusivo para Impresión y PDF) */}
-          <div className="hidden print:grid grid-cols-2 gap-12 pt-16 mt-8 border-t border-slate-300">
+          <div className="hidden print:grid grid-cols-2 gap-12 pt-12 mt-6 border-t-2 border-slate-300 signature-block avoid-page-break">
             <div className="text-center space-y-1">
               <div className="border-b-2 border-slate-900 w-3/4 mx-auto pb-8"></div>
-              <p className="font-extrabold text-sm text-slate-900">Firma del Repartidor / Responsable</p>
-              <p className="text-xs text-slate-500">C.C. ___________________</p>
+              <p className="font-extrabold text-xs text-slate-900">Firma del Repartidor / Responsable</p>
+              <p className="text-[10px] text-slate-500">C.C. ___________________</p>
             </div>
             <div className="text-center space-y-1">
               <div className="border-b-2 border-slate-900 w-3/4 mx-auto pb-8"></div>
-              <p className="font-extrabold text-sm text-slate-900">Firma Administración / Tesorería</p>
-              <p className="text-xs text-slate-500">Recibido y Verificado en Caja</p>
+              <p className="font-extrabold text-xs text-slate-900">Firma Administración / Tesorería</p>
+              <p className="text-[10px] text-slate-500">Recibido y Verificado en Caja</p>
             </div>
           </div>
         </div>
@@ -368,12 +365,21 @@ export function DailyClosureModal({
           <p className="text-xs text-slate-500 font-medium">
             Agua YA &copy; Sistema de Gestión de Entregas
           </p>
-          <button
-            onClick={onClose}
-            className="px-5 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl transition"
-          >
-            Cerrar Cierre de Caja
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowConfirmClose(true)}
+              className="px-4 py-2 bg-gradient-to-r from-amber-500 to-rose-600 hover:from-amber-600 hover:to-rose-700 text-white text-xs font-black rounded-xl shadow-sm transition flex items-center gap-1.5"
+            >
+              <Lock className="w-3.5 h-3.5" />
+              <span>Ejecutar Cierre Diario</span>
+            </button>
+            <button
+              onClick={onClose}
+              className="px-5 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl transition"
+            >
+              Cerrar Ventana
+            </button>
+          </div>
         </div>
       </div>
     </div>

@@ -148,7 +148,10 @@ export function ExecutiveAnalyticsDashboard({ orders, drivers }: ExecutiveAnalyt
 
   // Cálculos Globales
   const totalOrdersCount = filteredOrders.length;
-  const deliveredOrders = useMemo(() => filteredOrders.filter((o) => o.estadoEntrega === 'ENTREGADO'), [filteredOrders]);
+  const deliveredOrders = useMemo(
+    () => filteredOrders.filter((o) => o.estadoEntrega === 'ENTREGADO' || o.estadoEntrega === 'CERRADO'),
+    [filteredOrders]
+  );
   const totalDeliveredCount = deliveredOrders.length;
 
   const totalBottlesDelivered = useMemo(
@@ -239,7 +242,7 @@ export function ExecutiveAnalyticsDashboard({ orders, drivers }: ExecutiveAnalyt
 
     const list = activeDrivers.map((driver) => {
       const driverOrders = orders.filter((o) => o.repartidorId === driver.id);
-      const delivered = driverOrders.filter((o) => o.estadoEntrega === 'ENTREGADO');
+      const delivered = driverOrders.filter((o) => o.estadoEntrega === 'ENTREGADO' || o.estadoEntrega === 'CERRADO');
       const inRoute = driverOrders.filter((o) => o.estadoEntrega === 'EN_CAMINO');
       const pending = driverOrders.filter((o) => o.estadoEntrega === 'PENDIENTE');
 
