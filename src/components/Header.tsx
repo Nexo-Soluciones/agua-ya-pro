@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Droplets, ShieldCheck, Truck, RefreshCw, LogOut } from 'lucide-react';
+import { Droplets, ShieldCheck, Truck, RefreshCw, LogOut, KeyRound } from 'lucide-react';
 import { DriverAuthPinModal } from './DriverAuthPinModal';
 import { AdminAuthModal } from './AdminAuthModal';
+import { ChangePasswordModal } from './ChangePasswordModal';
 
 interface HeaderProps {
   currentRole: 'ADMIN' | string;
@@ -27,6 +28,7 @@ export function Header({
   } | null>(null);
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
 
   const handleSelectAdmin = () => {
     if (typeof window !== 'undefined') {
@@ -126,6 +128,18 @@ export function Header({
                 </span>
               </button>
 
+              {/* Botón de Cambiar Contraseña para el Administrador Activo */}
+              {currentRole === 'ADMIN' && (
+                <button
+                  onClick={() => setIsPasswordModalOpen(true)}
+                  className="h-9 px-2 bg-slate-800 hover:bg-sky-950 text-sky-300 hover:text-sky-200 border border-sky-400/30 rounded-lg transition flex items-center justify-center text-xs font-bold"
+                  title="Cambiar mi contraseña"
+                >
+                  <KeyRound className="w-3.5 h-3.5" />
+                  <span className="hidden md:inline ml-1">Clave</span>
+                </button>
+              )}
+
               <div className="h-5 w-px bg-slate-700 mx-0.5" />
 
               <div className="flex items-center gap-1.5">
@@ -178,6 +192,12 @@ export function Header({
         isOpen={isAdminModalOpen}
         onClose={() => setIsAdminModalOpen(false)}
         onSuccess={() => setCurrentRole('ADMIN')}
+      />
+
+      {/* Modal de Cambio de Contraseña */}
+      <ChangePasswordModal
+        isOpen={isPasswordModalOpen}
+        onClose={() => setIsPasswordModalOpen(false)}
       />
     </>
   );
