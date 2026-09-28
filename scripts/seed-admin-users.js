@@ -5,6 +5,13 @@ const prisma = new PrismaClient();
 
 const ADMIN_USERS = [
   {
+    nombre: 'Juliana Rojas',
+    email: 'juliana@aguaya.com',
+    telefono: '3101000004',
+    password: process.env.INITIAL_ADMIN_PASSWORD || 'AguaYa2026!',
+    rol: 'ADMIN',
+  },
+  {
     nombre: 'Thalia Jimenez',
     email: 'thalia@aguaya.com',
     telefono: '3101000001',

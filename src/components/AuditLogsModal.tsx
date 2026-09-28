@@ -106,7 +106,7 @@ export function AuditLogsModal({ isOpen, onClose }: AuditLogsModalProps) {
         <div className="p-4 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
           {/* Operator filter pills */}
           <div className="flex items-center gap-1.5 overflow-x-auto text-xs">
-            {['TODOS', 'Thalia', 'Leidy', 'Maritza'].map((name) => (
+            {['TODOS', 'Juliana', 'Thalia', 'Leidy', 'Maritza'].map((name) => (
               <button
                 key={name}
                 type="button"

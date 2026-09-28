@@ -63,8 +63,10 @@ interface Order {
     telefono?: string;
   } | null;
   numeroRemision?: string | null;
-  createdAt: string;
+  fechaCreacion?: string | Date;
+  createdAt?: string;
   updatedAt?: string;
+  [key: string]: any;
 }
 
 interface Driver {

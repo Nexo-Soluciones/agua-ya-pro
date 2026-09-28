@@ -10,15 +10,16 @@ interface AdminAuthModalProps {
 }
 
 const ADMIN_PRESETS = [
-  { nombre: 'Thalia Jimenez', email: 'thalia@aguaya.com', avatar: '👩‍💼', cargo: 'Despacho & Operaciones' },
-  { nombre: 'Leidy Giraldo', email: 'leidy@aguaya.com', avatar: '👩‍💻', cargo: 'Administración & Clientes' },
-  { nombre: 'Maritza Correa', email: 'maritza@aguaya.com', avatar: '👩‍💼', cargo: 'Control & Liquidación' },
+  { nombre: 'Juliana Rojas', email: 'juliana@aguaya.com', avatar: '👩‍💼', cargo: 'Envío de Pedidos' },
+  { nombre: 'Thalia Jimenez', email: 'thalia@aguaya.com', avatar: '👩‍💼', cargo: 'Administrativo' },
+  { nombre: 'Leidy Giraldo', email: 'leidy@aguaya.com', avatar: '👩‍💻', cargo: 'Administrativo' },
+  { nombre: 'Maritza Correa', email: 'maritza@aguaya.com', avatar: '👩‍💼', cargo: 'Administrativo' },
   { nombre: 'Admin General', email: 'admin@aguaya.com', avatar: '🛡️', cargo: 'Acceso Maestro' },
 ];
 
 export function AdminAuthModal({ isOpen, onClose, onSuccess }: AdminAuthModalProps) {
-  const [selectedUser, setSelectedUser] = useState<string>('Thalia Jimenez');
-  const [email, setEmail] = useState('thalia@aguaya.com');
+  const [selectedUser, setSelectedUser] = useState<string>('Juliana Rojas');
+  const [email, setEmail] = useState('juliana@aguaya.com');
   const [password, setPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [isLoading, setIsLoading] = useState(false);
