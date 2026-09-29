@@ -34,27 +34,6 @@ export function DriverAuthPinModal({
 
   if (!isOpen || !driver) return null;
 
-  // PIN esperado: por defecto 1111 para Repartidor 1, 2222 para Repartidor 2, etc. o ultimos 4 digitos del telefono
-  const getExpectedPin = (driverId: number, telefono?: string) => {
-    // Si tiene PIN personalizado en localStorage
-    if (typeof window !== 'undefined') {
-      const customPin = localStorage.getItem(`driver_custom_pin_${driverId}`);
-      if (customPin) return customPin;
-    }
-
-    if (driverId === 1) return '1111';
-    if (driverId === 2) return '2222';
-    if (driverId === 3) return '3333';
-    if (driverId === 4) return '4444';
-
-    if (telefono && telefono.length >= 4) {
-      return telefono.slice(-4);
-    }
-    return `${driverId}${driverId}${driverId}${driverId}`;
-  };
-
-  const expectedPin = getExpectedPin(driver.id, driver.telefono);
-
   const handleKeyPress = (digit: string) => {
     if (pin.length >= 4) return;
     const newPin = pin + digit;
@@ -101,22 +80,12 @@ export function DriverAuthPinModal({
         }, 700);
       }
     } catch (err) {
-      // Fallback
-      if (enteredPin === expectedPin || enteredPin === '9999') {
-        if (typeof window !== 'undefined') {
-          localStorage.setItem(`driver_authenticated_${driver.id}`, 'true');
-          localStorage.setItem('agua_ya_active_driver_id', driver.id.toString());
-        }
-        onSuccessAuth(driver.id);
-        onClose();
-      } else {
-        setIsShaking(true);
-        setErrorMsg('Error al verificar PIN o PIN incorrecto.');
-        setTimeout(() => {
-          setPin('');
-          setIsShaking(false);
-        }, 700);
-      }
+      setIsShaking(true);
+      setErrorMsg('Error de conexión con el servidor. Verifica tu internet e intenta de nuevo.');
+      setTimeout(() => {
+        setPin('');
+        setIsShaking(false);
+      }, 700);
     }
   };
 
@@ -177,7 +146,7 @@ export function DriverAuthPinModal({
             <p className="text-xs font-black text-rose-400 animate-pulse">{errorMsg}</p>
           ) : (
             <p className="text-[11px] text-slate-400">
-              PIN por defecto: <span className="text-sky-300 font-bold">{expectedPin}</span>
+              Ingresa tu PIN de 4 dígitos asignado por el administrador
             </p>
           )}
         </div>

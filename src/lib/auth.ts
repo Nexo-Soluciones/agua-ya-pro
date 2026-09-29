@@ -3,7 +3,10 @@ import bcrypt from 'bcryptjs';
 import { cookies } from 'next/headers';
 import { db } from './db';
 
-const JWT_SECRET_STRING = process.env.JWT_SECRET || 'aguaya-super-secret-production-jwt-key-2026-secure';
+const JWT_SECRET_STRING = process.env.JWT_SECRET;
+if (!JWT_SECRET_STRING) {
+  throw new Error('FATAL: JWT_SECRET environment variable is not set. Cannot start without it.');
+}
 const JWT_SECRET = new TextEncoder().encode(JWT_SECRET_STRING);
 
 export const COOKIE_NAME = 'aguaya_session';
