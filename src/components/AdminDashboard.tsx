@@ -105,16 +105,16 @@ export function AdminDashboard({
   const activeJornadaOrders = orders.filter((o) => o.estadoEntrega !== 'CERRADO');
   const totalOrders = activeJornadaOrders.length;
   const totalBottles = activeJornadaOrders.reduce((sum, o) => sum + o.cantidadBotellones, 0);
-  const pendingCount = orders.filter((o) => o.estadoEntrega === 'PENDIENTE').length;
-  const inTransitCount = orders.filter((o) => o.estadoEntrega === 'EN_CAMINO').length;
-  const deliveredCount = orders.filter((o) => o.estadoEntrega === 'ENTREGADO').length;
-  const pendingPaymentsCount = orders.filter(
+  const pendingCount = activeJornadaOrders.filter((o) => o.estadoEntrega === 'PENDIENTE').length;
+  const inTransitCount = activeJornadaOrders.filter((o) => o.estadoEntrega === 'EN_CAMINO').length;
+  const deliveredCount = activeJornadaOrders.filter((o) => o.estadoEntrega === 'ENTREGADO').length;
+  const pendingPaymentsCount = activeJornadaOrders.filter(
     (o) => (o.metodoPago === 'NEQUI' || o.metodoPago === 'TRANSFERENCIA') && o.estadoPago === 'PENDIENTE'
   ).length;
 
   // Delayed orders calculation (>20 min in route)
   const now = new Date().getTime();
-  const delayedOrdersCount = orders.filter((o) => {
+  const delayedOrdersCount = activeJornadaOrders.filter((o) => {
     if (o.estadoEntrega === 'EN_CAMINO' && o.updatedAt) {
       const mins = Math.floor((now - new Date(o.updatedAt).getTime()) / 60000);
       return mins >= 20;
@@ -122,27 +122,26 @@ export function AdminDashboard({
     return false;
   }).length;
 
-  const totalCollectedCash = orders
-    .filter((o) => (o.estadoEntrega === 'ENTREGADO' || o.estadoEntrega === 'CERRADO') && o.metodoPago === 'EFECTIVO')
+  const totalCollectedCash = activeJornadaOrders
+    .filter((o) => o.estadoEntrega === 'ENTREGADO' && o.metodoPago === 'EFECTIVO')
     .reduce((sum, o) => sum + o.montoTotal, 0);
 
-  const totalCollectedTransfer = orders
-    .filter((o) => (o.estadoEntrega === 'ENTREGADO' || o.estadoEntrega === 'CERRADO') && (o.metodoPago === 'NEQUI' || o.metodoPago === 'TRANSFERENCIA' || o.metodoPago === 'PAGOMOVIL'))
+  const totalCollectedTransfer = activeJornadaOrders
+    .filter((o) => o.estadoEntrega === 'ENTREGADO' && (o.metodoPago === 'NEQUI' || o.metodoPago === 'TRANSFERENCIA' || o.metodoPago === 'PAGOMOVIL'))
     .reduce((sum, o) => sum + o.montoTotal, 0);
 
-  const totalCollectedCredit = orders
-    .filter((o) => (o.estadoEntrega === 'ENTREGADO' || o.estadoEntrega === 'CERRADO') && o.metodoPago === 'CREDITO')
+  const totalCollectedCredit = activeJornadaOrders
+    .filter((o) => o.estadoEntrega === 'ENTREGADO' && o.metodoPago === 'CREDITO')
     .reduce((sum, o) => sum + o.montoTotal, 0);
 
   // Filtered orders
   const filteredOrders = orders.filter((o) => {
+    if (o.estadoEntrega === 'CERRADO') return false;
     if (activeFilter === 'PENDIENTE') return o.estadoEntrega === 'PENDIENTE';
     if (activeFilter === 'EN_CAMINO') return o.estadoEntrega === 'EN_CAMINO';
     if (activeFilter === 'ENTREGADO') return o.estadoEntrega === 'ENTREGADO';
     if (activeFilter === 'PAGOS')
       return (o.metodoPago === 'NEQUI' || o.metodoPago === 'TRANSFERENCIA') && o.estadoPago === 'PENDIENTE';
-    if (activeFilter === 'TODOS')
-      return o.estadoEntrega !== 'CERRADO';
     return true;
   });
 
