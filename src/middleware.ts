@@ -26,8 +26,9 @@ export async function middleware(req: NextRequest) {
   // ── Public routes that don't require authentication ──
   const isAuthRoute = pathname.startsWith('/api/auth/');
   const isProductsGet = pathname.startsWith('/api/products') && req.method === 'GET';
+  const isDriversGet = pathname === '/api/drivers' && req.method === 'GET';
 
-  if (isAuthRoute || isProductsGet) {
+  if (isAuthRoute || isProductsGet || isDriversGet) {
     const response = NextResponse.next();
     addSecurityHeaders(response);
     return response;
