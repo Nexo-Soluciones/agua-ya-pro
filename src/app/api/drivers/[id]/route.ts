@@ -1,5 +1,6 @@
 import { db } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
+import { hashSecret } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,15 +11,19 @@ export async function PATCH(
   try {
     const driverId = parseInt(params.id, 10);
     const body = await req.json();
-    const { nombre, telefono, estado } = body;
+    const { nombre, telefono, estado, pin } = body;
+
+    const updateData: any = {};
+    if (nombre) updateData.nombre = nombre.trim();
+    if (telefono) updateData.telefono = telefono.trim();
+    if (estado) updateData.estado = estado;
+    if (pin && pin.toString().trim()) {
+      updateData.pinHash = await hashSecret(pin.toString().trim());
+    }
 
     const updated = await db.user.update({
       where: { id: driverId },
-      data: {
-        ...(nombre && { nombre: nombre.trim() }),
-        ...(telefono && { telefono: telefono.trim() }),
-        ...(estado && { estado }),
-      },
+      data: updateData,
     });
 
     return NextResponse.json(updated);

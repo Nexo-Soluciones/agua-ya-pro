@@ -56,9 +56,13 @@ export default function Home() {
         fetch('/api/drivers'),
       ]);
 
-      if (ordersRes.ok && driversRes.ok) {
-        const ordersData = await ordersRes.json();
+      if (driversRes.ok) {
         const driversData = await driversRes.json();
+        setDrivers(driversData);
+      }
+
+      if (ordersRes.ok) {
+        const ordersData = await ordersRes.json();
 
         // Check if new order arrived
         if (
@@ -98,7 +102,6 @@ export default function Home() {
         });
 
         setOrders(ordersData);
-        setDrivers(driversData);
       }
     } catch (err) {
       console.error('Error loading data:', err);

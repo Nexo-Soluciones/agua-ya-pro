@@ -27,10 +27,12 @@ export function ManageDriversModal({
   const [editingDriverId, setEditingDriverId] = useState<number | null>(null);
   const [editNombre, setEditNombre] = useState('');
   const [editTelefono, setEditTelefono] = useState('');
+  const [editPin, setEditPin] = useState('');
 
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [newNombre, setNewNombre] = useState('');
   const [newTelefono, setNewTelefono] = useState('');
+  const [newPin, setNewPin] = useState('');
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -41,6 +43,7 @@ export function ManageDriversModal({
     setEditingDriverId(driver.id);
     setEditNombre(driver.nombre);
     setEditTelefono(driver.telefono);
+    setEditPin('');
     setIsAddingNew(false);
     setErrorMsg('');
   };
@@ -49,11 +52,17 @@ export function ManageDriversModal({
     setEditingDriverId(null);
     setEditNombre('');
     setEditTelefono('');
+    setEditPin('');
   };
 
   const handleSaveEdit = async (driverId: number) => {
     if (!editNombre.trim()) {
       setErrorMsg('El nombre es obligatorio.');
+      return;
+    }
+
+    if (editPin && (editPin.length !== 4 || isNaN(Number(editPin)))) {
+      setErrorMsg('El PIN debe ser exactamente de 4 dígitos numéricos.');
       return;
     }
 
@@ -67,6 +76,7 @@ export function ManageDriversModal({
         body: JSON.stringify({
           nombre: editNombre.trim(),
           telefono: editTelefono.trim(),
+          pin: editPin.trim() || undefined,
         }),
       });
 
@@ -91,6 +101,11 @@ export function ManageDriversModal({
       return;
     }
 
+    if (newPin && (newPin.length !== 4 || isNaN(Number(newPin)))) {
+      setErrorMsg('El PIN debe tener 4 dígitos numéricos.');
+      return;
+    }
+
     setIsSubmitting(true);
     setErrorMsg('');
 
@@ -101,6 +116,7 @@ export function ManageDriversModal({
         body: JSON.stringify({
           nombre: newNombre.trim(),
           telefono: newTelefono.trim() || undefined,
+          pin: newPin.trim() || '1234',
         }),
       });
 
@@ -111,6 +127,7 @@ export function ManageDriversModal({
 
       setNewNombre('');
       setNewTelefono('');
+      setNewPin('');
       setIsAddingNew(false);
       onDriversUpdated();
     } catch (err: any) {
@@ -156,7 +173,7 @@ export function ManageDriversModal({
             <div>
               <h3 className="text-xl font-black tracking-tight">Gestionar Equipo de Repartidores</h3>
               <p className="text-xs text-emerald-100 mt-0.5">
-                Edita nombres, teléfonos o añade nuevos choferes a la flota
+                Edita nombres, teléfonos y PINs de acceso para los choferes
               </p>
             </div>
           </div>
@@ -201,21 +218,30 @@ export function ManageDriversModal({
           {isAddingNew && (
             <form onSubmit={handleAddNewDriver} className="p-4 bg-emerald-50/70 border border-emerald-200 rounded-2xl space-y-3 animate-in fade-in">
               <p className="text-xs font-black text-emerald-900">Registrar Nuevo Repartidor</p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 <input
                   type="text"
                   required
-                  placeholder="Nombre (ej: Carlos)"
+                  placeholder="Nombre *"
                   value={newNombre}
                   onChange={(e) => setNewNombre(e.target.value)}
                   className="px-3 py-2 bg-white border border-emerald-300 rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
                 <input
                   type="tel"
-                  placeholder="Teléfono (ej: 3001234567)"
+                  placeholder="Teléfono"
                   value={newTelefono}
                   onChange={(e) => setNewTelefono(e.target.value)}
                   className="px-3 py-2 bg-white border border-emerald-300 rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+                <input
+                  type="password"
+                  maxLength={4}
+                  required
+                  placeholder="PIN 4 dígitos *"
+                  value={newPin}
+                  onChange={(e) => setNewPin(e.target.value)}
+                  className="px-3 py-2 bg-white border border-emerald-300 rounded-xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-center tracking-widest font-mono"
                 />
               </div>
               <div className="flex items-center justify-end gap-2 pt-1">
@@ -258,7 +284,7 @@ export function ManageDriversModal({
                           Editar Repartidor #{index + 1}
                         </span>
                       </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                         <input
                           type="text"
                           required
@@ -273,6 +299,14 @@ export function ManageDriversModal({
                           onChange={(e) => setEditTelefono(e.target.value)}
                           className="px-3 py-1.5 bg-white border border-sky-300 rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
                           placeholder="Teléfono"
+                        />
+                        <input
+                          type="password"
+                          maxLength={4}
+                          value={editPin}
+                          onChange={(e) => setEditPin(e.target.value)}
+                          className="px-3 py-1.5 bg-white border border-sky-300 rounded-xl text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500 text-center tracking-widest font-mono"
+                          placeholder="Nuevo PIN (4d)"
                         />
                       </div>
                       <div className="flex items-center justify-end gap-2 pt-1">
@@ -307,9 +341,8 @@ export function ManageDriversModal({
                               <Phone className="w-3 h-3 text-slate-400" />
                               <span>{driver.telefono}</span>
                             </p>
-                            <span className="text-[11px] font-black bg-sky-100 text-sky-900 border border-sky-200 px-2 py-0.2 rounded-md flex items-center gap-1">
-                              <span>🔑 PIN:</span>
-                              <span>{driver.id === 1 ? '1111' : driver.id === 2 ? '2222' : driver.id === 3 ? '3333' : driver.id === 4 ? '4444' : driver.telefono ? driver.telefono.slice(-4) : `${driver.id}${driver.id}${driver.id}${driver.id}`}</span>
+                            <span className="text-[10px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-200 px-2 py-0.5 rounded-md flex items-center gap-1">
+                              <span>🔒 PIN configurado</span>
                             </span>
                           </div>
                         </div>
@@ -320,7 +353,7 @@ export function ManageDriversModal({
                           type="button"
                           onClick={() => startEdit(driver)}
                           className="p-2 text-slate-500 hover:text-sky-600 hover:bg-sky-50 rounded-xl transition"
-                          title="Editar nombre / teléfono"
+                          title="Editar nombre, teléfono o PIN"
                         >
                           <Edit2 className="w-4 h-4" />
                         </button>
