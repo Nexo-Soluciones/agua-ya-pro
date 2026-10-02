@@ -465,7 +465,7 @@ export function DriverView({ driver, orders, onUpdateOrder }: DriverViewProps) {
                       <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
                         📦 Productos a Entregar:
                       </span>
-                      <span className="text-xs font-extrabold text-sky-800 bg-sky-100 px-2.5 py-0.5 rounded-lg border border-sky-200">
+                      <span className="text-xs font-black text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-lg border border-emerald-200">
                         Cobrar: ${order.montoTotal.toLocaleString('es-CO')}
                       </span>
                     </div>
@@ -485,43 +485,50 @@ export function DriverView({ driver, orders, onUpdateOrder }: DriverViewProps) {
                         ))}
                       </div>
                     ) : (
-                      <div className="flex items-center gap-2 text-sm font-bold text-slate-800">
-                        <Droplet className="w-4 h-4 text-sky-500 shrink-0" />
-                        <span>{order.resumenProductos || `${order.cantidadBotellones} Botellón(es) 20L`}</span>
+                      <div className="flex items-center justify-between text-sm font-bold text-slate-800">
+                        <div className="flex items-center gap-2">
+                          <Droplet className="w-4 h-4 text-sky-500 shrink-0" />
+                          <span>{order.resumenProductos || `${order.cantidadBotellones} Botellón(es) 20L`}</span>
+                        </div>
+                        <span className="text-xs text-slate-500 font-medium">({order.cantidadBotellones} bot.)</span>
                       </div>
                     )}
                   </div>
 
-                  {/* Action Buttons */}
+                  {/* Action Buttons for Driver */}
                   <div className="mt-3.5 space-y-2">
-                    {order.estadoEntrega === 'PENDIENTE' ? (
-                      <button
-                        onClick={() =>
-                          onUpdateOrder(order.id, {
-                            estadoEntrega: 'EN_CAMINO',
-                          })
-                        }
-                        className="w-full py-3.5 bg-gradient-to-r from-blue-600 to-sky-600 hover:from-blue-700 hover:to-sky-700 text-white rounded-2xl font-black text-base transition shadow-md shadow-blue-500/25 flex items-center justify-center gap-2"
-                      >
-                        <Truck className="w-5 h-5" />
-                        <span>Iniciar Ruta (En Camino)</span>
-                      </button>
-                    ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {order.estadoEntrega === 'PENDIENTE' && (
+                        <button
+                          onClick={() =>
+                            onUpdateOrder(order.id, {
+                              estadoEntrega: 'EN_CAMINO',
+                            })
+                          }
+                          className="w-full py-3 bg-gradient-to-r from-blue-600 to-sky-600 hover:from-blue-700 hover:to-sky-700 active:scale-[0.98] text-white rounded-2xl font-black text-sm transition shadow-md shadow-blue-500/25 flex items-center justify-center gap-1.5"
+                        >
+                          <Truck className="w-4 h-4" />
+                          <span>🚚 En Camino</span>
+                        </button>
+                      )}
+
                       <button
                         onClick={() => openDeliveryModal(order)}
-                        className="w-full py-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-2xl font-black text-lg transition shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2 active:scale-[0.98]"
+                        className={`w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 active:scale-[0.98] text-white rounded-2xl font-black text-sm sm:text-base transition shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2 ${
+                          order.estadoEntrega === 'PENDIENTE' ? '' : 'sm:col-span-2'
+                        }`}
                       >
-                        <CheckCircle2 className="w-6 h-6" />
-                        <span>CONFIRMAR ENTREGA</span>
+                        <CheckCircle2 className="w-5 h-5" />
+                        <span>✅ Entregar / Modificar Botellones</span>
                       </button>
-                    )}
+                    </div>
 
                     <button
                       onClick={() => openRejectionModal(order)}
-                      className="w-full py-2.5 bg-rose-50/90 hover:bg-rose-100 text-rose-700 border border-rose-200/90 rounded-2xl font-bold text-xs transition flex items-center justify-center gap-1.5 active:scale-[0.98]"
+                      className="w-full py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border-2 border-rose-300 rounded-2xl font-black text-xs transition flex items-center justify-center gap-1.5 active:scale-[0.98] shadow-xs"
                     >
                       <XCircle className="w-4 h-4 text-rose-600" />
-                      <span>No se pudo entregar / Rechazar pedido</span>
+                      <span>❌ No se pudo entregar / Rechazar pedido</span>
                     </button>
                   </div>
                 </div>
