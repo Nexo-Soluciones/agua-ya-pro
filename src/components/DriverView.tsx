@@ -317,10 +317,10 @@ export function DriverView({ driver, orders, onUpdateOrder }: DriverViewProps) {
                   ? Math.floor((now - new Date(order.updatedAt).getTime()) / 60000)
                   : 0;
 
-              const isDelayed = minsInRoute >= 20;
+              const isDelayed = minsInRoute >= 90;
 
               // Visual Semáforo:
-              // 🔴 RED: Delayed order (>20m)
+              // 🔴 RED: Delayed order (>90m / 1h 30m)
               // 🟢 GREEN: Active assigned order
               return (
                 <div

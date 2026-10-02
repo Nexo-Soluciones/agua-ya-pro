@@ -82,14 +82,14 @@ export default function Home() {
 
         prevOrdersCountRef.current = ordersData.length;
 
-        // Check for delayed orders (> 20 minutes in EN_CAMINO)
+        // Check for delayed orders (> 90 minutes / 1h 30m in EN_CAMINO)
         const now = new Date().getTime();
         ordersData.forEach((order: any) => {
           if (order.estadoEntrega === 'EN_CAMINO' && order.updatedAt) {
             const updatedTime = new Date(order.updatedAt).getTime();
             const minutesInRoute = Math.floor((now - updatedTime) / 60000);
 
-            if (minutesInRoute >= 20 && minutesInRoute % 10 === 0) {
+            if (minutesInRoute >= 90 && minutesInRoute % 15 === 0) {
               playNotificationSound('DELAY_ALERT');
               sendPushNotification(
                 `⚠️ ¡Alerta de Demora! Pedido #${order.numeroPedido}`,

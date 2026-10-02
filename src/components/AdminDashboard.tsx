@@ -123,12 +123,12 @@ export function AdminDashboard({
   const rejectedCount = rejectedOrders.length;
   const rejectedBottles = rejectedOrders.reduce((sum, o) => sum + (o.cantidadBotellones || 0), 0);
 
-  // Delayed orders calculation (>20 min in route)
+  // Delayed orders calculation (>90 min in route)
   const now = new Date().getTime();
   const delayedOrdersCount = activeJornadaOrders.filter((o) => {
     if (o.estadoEntrega === 'EN_CAMINO' && o.updatedAt) {
       const mins = Math.floor((now - new Date(o.updatedAt).getTime()) / 60000);
-      return mins >= 20;
+      return mins >= 90;
     }
     return false;
   }).length;
@@ -482,7 +482,7 @@ export function AdminDashboard({
                 ? Math.floor((now - new Date(order.updatedAt).getTime()) / 60000)
                 : 0;
 
-            const isDelayed = minsInRoute >= 20;
+            const isDelayed = minsInRoute >= 90;
 
             return (
               <div
