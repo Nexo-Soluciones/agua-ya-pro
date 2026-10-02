@@ -19,6 +19,9 @@ export async function PATCH(
       numeroRemision,
       notasEntrega,
       operadorNombre,
+      cantidadBotellones,
+      montoTotal,
+      precioUnitario,
     } = body;
 
     const finalOperador = operadorNombre || session?.nombre || 'Administración';
@@ -38,6 +41,18 @@ export async function PATCH(
       if (estadoEntrega === 'ENTREGADO') {
         updateData.fechaEntrega = new Date();
       }
+    }
+
+    if (cantidadBotellones !== undefined && cantidadBotellones > 0) {
+      updateData.cantidadBotellones = parseInt(cantidadBotellones, 10);
+    }
+
+    if (montoTotal !== undefined && montoTotal >= 0) {
+      updateData.montoTotal = parseFloat(montoTotal);
+    }
+
+    if (precioUnitario !== undefined && precioUnitario >= 0) {
+      updateData.precioUnitario = parseFloat(precioUnitario);
     }
 
     if (repartidorId !== undefined) {

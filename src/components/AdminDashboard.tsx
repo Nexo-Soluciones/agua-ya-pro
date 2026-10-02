@@ -23,6 +23,7 @@ import {
   Users,
   BarChart3,
   History,
+  RotateCcw,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { DailyClosureModal } from './DailyClosureModal';
@@ -82,6 +83,9 @@ interface AdminDashboardProps {
       repartidorId?: number | null;
       estadoPago?: string;
       comprobanteRef?: string;
+      cantidadBotellones?: number;
+      montoTotal?: number;
+      notasEntrega?: string;
     }
   ) => void;
 }
@@ -94,7 +98,7 @@ export function AdminDashboard({
   onUpdateOrder,
 }: AdminDashboardProps) {
   const [activeFilter, setActiveFilter] = useState<
-    'TODOS' | 'PENDIENTE' | 'EN_CAMINO' | 'ENTREGADO' | 'PAGOS' | 'MAPA' | 'METRICAS'
+    'TODOS' | 'PENDIENTE' | 'EN_CAMINO' | 'ENTREGADO' | 'PAGOS' | 'RECHAZADOS' | 'MAPA' | 'METRICAS'
   >('TODOS');
   const [isClosureModalOpen, setIsClosureModalOpen] = useState(false);
   const [isNewClientModalOpen, setIsNewClientModalOpen] = useState(false);
@@ -111,6 +115,13 @@ export function AdminDashboard({
   const pendingPaymentsCount = activeJornadaOrders.filter(
     (o) => (o.metodoPago === 'NEQUI' || o.metodoPago === 'TRANSFERENCIA') && o.estadoPago === 'PENDIENTE'
   ).length;
+
+  // Rejected / Cancelled orders calculation
+  const rejectedOrders = activeJornadaOrders.filter(
+    (o) => o.estadoEntrega === 'CANCELADO' || o.estadoEntrega === 'RECHAZADO'
+  );
+  const rejectedCount = rejectedOrders.length;
+  const rejectedBottles = rejectedOrders.reduce((sum, o) => sum + (o.cantidadBotellones || 0), 0);
 
   // Delayed orders calculation (>20 min in route)
   const now = new Date().getTime();
@@ -140,6 +151,8 @@ export function AdminDashboard({
     if (activeFilter === 'PENDIENTE') return o.estadoEntrega === 'PENDIENTE';
     if (activeFilter === 'EN_CAMINO') return o.estadoEntrega === 'EN_CAMINO';
     if (activeFilter === 'ENTREGADO') return o.estadoEntrega === 'ENTREGADO';
+    if (activeFilter === 'RECHAZADOS')
+      return o.estadoEntrega === 'CANCELADO' || o.estadoEntrega === 'RECHAZADO';
     if (activeFilter === 'PAGOS')
       return (o.metodoPago === 'NEQUI' || o.metodoPago === 'TRANSFERENCIA') && o.estadoPago === 'PENDIENTE';
     return true;
@@ -232,7 +245,14 @@ export function AdminDashboard({
           </div>
           <div className="mt-3">
             <span className="text-3xl sm:text-4xl font-black text-slate-900">{totalBottles}</span>
-            <span className="text-xs text-slate-400 block font-medium mt-0.5">{totalOrders} pedidos totales</span>
+            <div className="flex items-center justify-between text-xs text-slate-400 font-medium mt-0.5">
+              <span>{totalOrders} pedidos</span>
+              {rejectedBottles > 0 && (
+                <span className="text-rose-600 font-bold bg-rose-50 px-1.5 py-0.5 rounded-md text-[11px]">
+                  ⚠️ {rejectedBottles} rech.
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
@@ -321,6 +341,24 @@ export function AdminDashboard({
         </div>
       </div>
 
+      {/* Alert bar if there are rejected orders */}
+      {rejectedCount > 0 && (
+        <div className="bg-rose-50 border border-rose-200 text-rose-900 px-4 py-3 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 shadow-xs">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0" />
+            <span className="text-xs sm:text-sm font-bold">
+              Hay <strong className="text-rose-700">{rejectedCount} pedido(s) rechazado(s)</strong> ({rejectedBottles} botellones devueltos o no entregados).
+            </span>
+          </div>
+          <button
+            onClick={() => setActiveFilter('RECHAZADOS')}
+            className="text-xs bg-rose-600 hover:bg-rose-700 text-white font-black px-3 py-1.5 rounded-xl transition shadow-xs flex items-center gap-1"
+          >
+            <span>Ver Pedidos Rechazados ({rejectedCount})</span>
+          </button>
+        </div>
+      )}
+
       {/* Filter Tabs */}
       <div className="flex items-center justify-between border-b border-sky-300/30 pb-3 overflow-x-auto gap-2">
         <div className="flex items-center gap-2.5 min-w-max">
@@ -377,6 +415,23 @@ export function AdminDashboard({
           </button>
 
           <button
+            onClick={() => setActiveFilter('RECHAZADOS')}
+            className={`px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold transition-all duration-200 hover:scale-105 active:scale-95 flex items-center gap-1.5 ${
+              activeFilter === 'RECHAZADOS'
+                ? 'bg-rose-600 text-white shadow-md'
+                : 'glass-mac text-rose-800 hover:text-rose-950'
+            }`}
+          >
+            <XCircle className="w-4 h-4" />
+            <span>Rechazados ({rejectedCount})</span>
+            {rejectedBottles > 0 && (
+              <span className="text-[10px] bg-rose-200 text-rose-950 px-1.5 py-0.5 rounded-full font-black">
+                {rejectedBottles} bot.
+              </span>
+            )}
+          </button>
+
+          <button
             onClick={() => setActiveFilter('MAPA')}
             className={`px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold transition-all duration-200 hover:scale-105 active:scale-95 flex items-center gap-1.5 ${
               activeFilter === 'MAPA'
@@ -420,6 +475,8 @@ export function AdminDashboard({
               (order.metodoPago === 'NEQUI' || order.metodoPago === 'TRANSFERENCIA') &&
               order.estadoPago === 'PENDIENTE';
 
+            const isRejected = order.estadoEntrega === 'CANCELADO' || order.estadoEntrega === 'RECHAZADO';
+
             const minsInRoute =
               order.estadoEntrega === 'EN_CAMINO' && order.updatedAt
                 ? Math.floor((now - new Date(order.updatedAt).getTime()) / 60000)
@@ -433,6 +490,8 @@ export function AdminDashboard({
                 className={`glass-mac glass-mac-interactive rounded-3xl p-5 sm:p-6 flex flex-col justify-between ${
                   isDelayed
                     ? 'ring-2 ring-rose-400 bg-rose-50/50'
+                    : isRejected
+                    ? 'ring-2 ring-rose-500 bg-rose-50/40 border-rose-200'
                     : isNequiPending
                     ? 'ring-2 ring-purple-400 bg-purple-50/50'
                     : ''
@@ -468,7 +527,7 @@ export function AdminDashboard({
                             ? 'bg-blue-100 text-blue-800'
                             : order.estadoEntrega === 'ENTREGADO'
                             ? 'bg-emerald-100 text-emerald-800'
-                            : 'bg-slate-100 text-slate-700'
+                            : 'bg-rose-100 text-rose-800 border border-rose-200'
                         }`}
                       >
                         {order.estadoEntrega === 'PENDIENTE'
@@ -477,7 +536,7 @@ export function AdminDashboard({
                           ? 'En Ruta'
                           : order.estadoEntrega === 'ENTREGADO'
                           ? 'Entregado'
-                          : 'Cancelado'}
+                          : 'Rechazado'}
                       </span>
                     </div>
                   </div>
@@ -486,34 +545,34 @@ export function AdminDashboard({
                   <div className="space-y-1.5 mb-4">
                     <div className="flex items-center gap-2 text-slate-900 font-bold text-base">
                       <User className="w-4 h-4 text-slate-400 shrink-0" />
-                      <span>{order.cliente.nombre || 'Entrega Directa'}</span>
+                      <span>{order.cliente?.nombre || 'Entrega Directa'}</span>
                       <span
                         className={`text-[10px] px-2 py-0.5 rounded-full font-extrabold ml-auto ${
-                          order.cliente.tipoCliente === 'VIEJO'
+                          order.cliente?.tipoCliente === 'VIEJO'
                             ? 'bg-emerald-100 text-emerald-800'
                             : 'bg-amber-100 text-amber-800'
                         }`}
                       >
-                        {order.cliente.tipoCliente === 'VIEJO' ? 'Frecuente ($7k)' : 'Nuevo ($8k)'}
+                        {order.cliente?.tipoCliente === 'VIEJO' ? 'Frecuente ($7k)' : 'Nuevo ($8k)'}
                       </span>
                     </div>
 
                     <div className="flex items-start gap-2 text-xs text-slate-600">
                       <MapPin className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
                       <div>
-                        <p className="font-bold text-slate-900">{order.cliente.direccion}</p>
-                        {order.cliente.barrioSector && (
-                          <p className="text-slate-500 font-normal">Barrio: {order.cliente.barrioSector}</p>
+                        <p className="font-bold text-slate-900">{order.cliente?.direccion}</p>
+                        {order.cliente?.barrioSector && (
+                          <p className="text-slate-500 font-normal">Barrio: {order.cliente?.barrioSector}</p>
                         )}
-                        {order.cliente.notasUbicacion && (
-                          <p className="text-slate-500 italic mt-0.5">Nota: "{order.cliente.notasUbicacion}"</p>
+                        {order.cliente?.notasUbicacion && (
+                          <p className="text-slate-500 italic mt-0.5">Nota: "{order.cliente?.notasUbicacion}"</p>
                         )}
                       </div>
                     </div>
 
                     <div className="flex items-center gap-2 text-xs text-slate-500">
                       <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                      <span>{order.cliente.telefono}</span>
+                      <span>{order.cliente?.telefono}</span>
                     </div>
                   </div>
 
@@ -587,6 +646,19 @@ export function AdminDashboard({
                       </div>
                     )}
 
+                    {/* Motivo de Rechazo en Ruta si aplica */}
+                    {isRejected && (
+                      <div className="bg-rose-100/80 border border-rose-300 text-rose-950 p-2.5 rounded-xl text-xs mt-2 space-y-1">
+                        <p className="font-extrabold text-rose-900 flex items-center gap-1">
+                          <AlertTriangle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                          <span>Motivo de Rechazo en Ruta:</span>
+                        </p>
+                        <p className="italic font-medium text-slate-900 bg-white/70 p-1.5 rounded-lg border border-rose-200">
+                          {order.notasEntrega || 'Sin motivo especificado'}
+                        </p>
+                      </div>
+                    )}
+
                     {/* Traceability: Operator */}
                     <div className="flex items-center justify-between text-[11px] pt-1.5 border-t border-slate-200/80 text-slate-500">
                       <span className="flex items-center gap-1 font-medium">
@@ -643,9 +715,22 @@ export function AdminDashboard({
                     </div>
                   )}
 
-                  {/* Change Order Delivery Status */}
+                  {/* Change Order Delivery Status or Reassign Rejected Order */}
                   <div className="flex items-center gap-1 pt-1">
-                    {order.estadoEntrega !== 'ENTREGADO' && (
+                    {isRejected ? (
+                      <button
+                        onClick={() =>
+                          onUpdateOrder(order.id, {
+                            estadoEntrega: 'PENDIENTE',
+                            repartidorId: null,
+                          })
+                        }
+                        className="w-full py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white rounded-xl text-xs font-black transition flex items-center justify-center gap-1.5 shadow-md shadow-amber-500/25 active:scale-95"
+                      >
+                        <RotateCcw className="w-4 h-4" />
+                        <span>Reintentar / Devolver a Pendientes</span>
+                      </button>
+                    ) : order.estadoEntrega !== 'ENTREGADO' ? (
                       <button
                         onClick={() =>
                           onUpdateOrder(order.id, {
@@ -657,7 +742,7 @@ export function AdminDashboard({
                       >
                         <CheckCircle2 className="w-3.5 h-3.5" /> Marcar Entregado
                       </button>
-                    )}
+                    ) : null}
                   </div>
                 </div>
               </div>

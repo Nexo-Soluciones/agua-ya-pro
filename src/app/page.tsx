@@ -128,6 +128,9 @@ export default function Home() {
       comprobanteRef?: string;
       numeroRemision?: string;
       notasEntrega?: string;
+      cantidadBotellones?: number;
+      montoTotal?: number;
+      precioUnitario?: number;
     }
   ) => {
     try {

@@ -17,6 +17,8 @@ import {
   FileText,
   Bookmark,
   ChevronRight,
+  XCircle,
+  AlertTriangle,
 } from 'lucide-react';
 
 interface DriverViewProps {
@@ -31,16 +33,26 @@ interface DriverViewProps {
       comprobanteRef?: string;
       numeroRemision?: string;
       notasEntrega?: string;
+      cantidadBotellones?: number;
+      montoTotal?: number;
+      precioUnitario?: number;
     }
   ) => Promise<void>;
 }
 
 export function DriverView({ driver, orders, onUpdateOrder }: DriverViewProps) {
   const [selectedOrderForDelivery, setSelectedOrderForDelivery] = useState<any | null>(null);
+  const [customBottles, setCustomBottles] = useState<number>(1);
   const [metodoPago, setMetodoPago] = useState<'EFECTIVO' | 'NEQUI' | 'TRANSFERENCIA' | 'CREDITO'>('EFECTIVO');
   const [comprobanteRef, setComprobanteRef] = useState('');
   const [numeroRemision, setNumeroRemision] = useState('');
   const [notasEntrega, setNotasEntrega] = useState('');
+  
+  // Rejection modal state
+  const [selectedOrderForRejection, setSelectedOrderForRejection] = useState<any | null>(null);
+  const [rejectionReason, setRejectionReason] = useState<string>('CLIENTE_NO_ESTA');
+  const [customRejectionDetail, setCustomRejectionDetail] = useState('');
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState<'PENDIENTES' | 'ENTREGADOS'>('PENDIENTES');
 
@@ -120,6 +132,7 @@ export function DriverView({ driver, orders, onUpdateOrder }: DriverViewProps) {
 
   const openDeliveryModal = (order: any) => {
     setSelectedOrderForDelivery(order);
+    setCustomBottles(order.cantidadBotellones || 1);
     setMetodoPago((order.metodoPago as any) || 'EFECTIVO');
     setComprobanteRef(order.comprobanteRef || '');
     setNumeroRemision(order.numeroRemision || '');
@@ -130,10 +143,15 @@ export function DriverView({ driver, orders, onUpdateOrder }: DriverViewProps) {
     e.preventDefault();
     if (!selectedOrderForDelivery) return;
 
+    const unitPrice = selectedOrderForDelivery.precioUnitario || 7000;
+    const calculatedTotal = customBottles * unitPrice;
+
     setIsSubmitting(true);
     try {
       await onUpdateOrder(selectedOrderForDelivery.id, {
         estadoEntrega: 'ENTREGADO',
+        cantidadBotellones: customBottles,
+        montoTotal: calculatedTotal,
         metodoPago,
         estadoPago: metodoPago === 'EFECTIVO' ? 'VERIFICADO' : metodoPago === 'CREDITO' ? 'PENDIENTE' : 'PENDIENTE',
         comprobanteRef: metodoPago === 'NEQUI' || metodoPago === 'TRANSFERENCIA' ? comprobanteRef : undefined,
@@ -141,6 +159,46 @@ export function DriverView({ driver, orders, onUpdateOrder }: DriverViewProps) {
         notasEntrega,
       });
       setSelectedOrderForDelivery(null);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const openRejectionModal = (order: any) => {
+    setSelectedOrderForRejection(order);
+    setRejectionReason('CLIENTE_NO_ESTA');
+    setCustomRejectionDetail('');
+  };
+
+  const handleConfirmRejection = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedOrderForRejection) return;
+
+    const reasonLabels: Record<string, string> = {
+      CLIENTE_NO_ESTA: 'Cliente no se encuentra / No atiende',
+      DIRECCION_ERRADA: 'Dirección errada / No existe',
+      CLIENTE_CANCELO: 'Cliente canceló el pedido',
+      SIN_ENVASES: 'No tiene envases vacíos para cambio',
+      SIN_DINERO: 'No tiene dinero en el momento',
+      OTRO: 'Otro motivo',
+    };
+
+    const finalReason =
+      rejectionReason === 'OTRO' && customRejectionDetail.trim()
+        ? `Otro: ${customRejectionDetail.trim()}`
+        : `${reasonLabels[rejectionReason]}${
+            customRejectionDetail.trim() ? ` (${customRejectionDetail.trim()})` : ''
+          }`;
+
+    setIsSubmitting(true);
+    try {
+      await onUpdateOrder(selectedOrderForRejection.id, {
+        estadoEntrega: 'CANCELADO',
+        notasEntrega: `❌ Rechazado en ruta: ${finalReason}`,
+      });
+      setSelectedOrderForRejection(null);
     } catch (err) {
       console.error(err);
     } finally {
@@ -435,7 +493,7 @@ export function DriverView({ driver, orders, onUpdateOrder }: DriverViewProps) {
                   </div>
 
                   {/* Action Buttons */}
-                  <div className="mt-3.5">
+                  <div className="mt-3.5 space-y-2">
                     {order.estadoEntrega === 'PENDIENTE' ? (
                       <button
                         onClick={() =>
@@ -457,6 +515,14 @@ export function DriverView({ driver, orders, onUpdateOrder }: DriverViewProps) {
                         <span>CONFIRMAR ENTREGA</span>
                       </button>
                     )}
+
+                    <button
+                      onClick={() => openRejectionModal(order)}
+                      className="w-full py-2.5 bg-rose-50/90 hover:bg-rose-100 text-rose-700 border border-rose-200/90 rounded-2xl font-bold text-xs transition flex items-center justify-center gap-1.5 active:scale-[0.98]"
+                    >
+                      <XCircle className="w-4 h-4 text-rose-600" />
+                      <span>No se pudo entregar / Rechazar pedido</span>
+                    </button>
                   </div>
                 </div>
               );
@@ -535,8 +601,8 @@ export function DriverView({ driver, orders, onUpdateOrder }: DriverViewProps) {
 
       {/* Delivery Finalization Modal */}
       {selectedOrderForDelivery && (
-        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in duration-150 border border-slate-200">
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in duration-150 border border-slate-200 my-4">
             {/* Modal Header */}
             <div className="bg-gradient-to-r from-emerald-600 to-teal-700 p-5 text-white flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -558,15 +624,45 @@ export function DriverView({ driver, orders, onUpdateOrder }: DriverViewProps) {
                 <p className="text-xs text-emerald-800 font-medium mt-0.5">
                   📍 {selectedOrderForDelivery.cliente.direccion}
                 </p>
-                <div className="flex items-center justify-between mt-2 pt-2 border-t border-emerald-200/60 font-black">
-                  <span>{selectedOrderForDelivery.cantidadBotellones} Botellones</span>
-                  <span className="text-base text-emerald-900">
-                    Total: ${selectedOrderForDelivery.montoTotal.toLocaleString('es-CO')}
+              </div>
+
+              {/* Botellones Quantity Stepper */}
+              <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-xs font-black text-slate-900 block">Cantidad Entregada</span>
+                    <span className="text-[10px] text-slate-500 font-medium">¿Pidió más o menos botellones?</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setCustomBottles(Math.max(1, customBottles - 1))}
+                      className="w-9 h-9 rounded-xl bg-white border border-slate-300 font-black text-slate-800 hover:bg-slate-100 flex items-center justify-center text-lg active:scale-95 shadow-xs"
+                    >
+                      -
+                    </button>
+                    <span className="w-8 text-center font-black text-lg text-emerald-700 font-mono">
+                      {customBottles}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setCustomBottles(customBottles + 1)}
+                      className="w-9 h-9 rounded-xl bg-emerald-600 font-black text-white hover:bg-emerald-700 flex items-center justify-center text-lg shadow-sm active:scale-95"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-2 border-t border-slate-200 text-xs font-black">
+                  <span className="text-slate-600">Total a Cobrar:</span>
+                  <span className="text-base text-slate-900">
+                    ${(customBottles * (selectedOrderForDelivery.precioUnitario || 7000)).toLocaleString('es-CO')} COP
                   </span>
                 </div>
               </div>
 
-              {/* Forma de Pago (4 opciones: Efectivo, Nequi, Transferencia, A Crédito) */}
+              {/* Forma de Pago */}
               <div>
                 <label className="block text-xs font-black text-slate-700 uppercase tracking-wider mb-2">
                   Forma de Pago del Cliente *
@@ -622,7 +718,7 @@ export function DriverView({ driver, orders, onUpdateOrder }: DriverViewProps) {
                 </div>
               </div>
 
-              {/* Número de Remisión (Importantísimo para control interno) */}
+              {/* Número de Remisión */}
               <div>
                 <label className="block text-xs font-black text-slate-800 uppercase tracking-wider mb-1 flex items-center gap-1">
                   <Bookmark className="w-3.5 h-3.5 text-purple-600" />
@@ -663,7 +759,7 @@ export function DriverView({ driver, orders, onUpdateOrder }: DriverViewProps) {
                   type="text"
                   value={notasEntrega}
                   onChange={(e) => setNotasEntrega(e.target.value)}
-                  placeholder="Ej. Recibido por secretaria, pagará mañana"
+                  placeholder="Ej. Recibido por secretaria, etc."
                   className="w-full px-3.5 py-2 text-sm border border-slate-300 rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none"
                 />
               </div>
@@ -675,6 +771,95 @@ export function DriverView({ driver, orders, onUpdateOrder }: DriverViewProps) {
                   className="w-full py-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black rounded-2xl shadow-xl shadow-emerald-600/30 transition text-base disabled:opacity-50 active:scale-[0.98]"
                 >
                   {isSubmitting ? 'Guardando Entrega...' : 'COMPLETAR Y CERRAR PEDIDO'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* REJECTION / NO ENTREGADO MODAL */}
+      {selectedOrderForRejection && (
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in duration-150 border border-slate-200 my-4">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-rose-600 to-red-700 p-5 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-6 h-6 text-white" />
+                <h3 className="font-black text-lg">Rechazar / No Entregado</h3>
+              </div>
+              <button
+                onClick={() => setSelectedOrderForRejection(null)}
+                className="text-rose-100 hover:text-white p-1 rounded-lg hover:bg-white/10 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleConfirmRejection} className="p-5 space-y-4">
+              <div className="bg-rose-50 p-3.5 rounded-2xl border border-rose-200 text-rose-950 text-sm">
+                <p className="font-black text-base">{selectedOrderForRejection.cliente.nombre}</p>
+                <p className="text-xs text-rose-800 font-medium mt-0.5">
+                  📍 {selectedOrderForRejection.cliente.direccion}
+                </p>
+                <span className="text-xs font-bold text-rose-700 block mt-1">
+                  Pedido #{selectedOrderForRejection.numeroPedido} ({selectedOrderForRejection.cantidadBotellones} Botellones)
+                </span>
+              </div>
+
+              <div>
+                <label className="block text-xs font-black text-slate-800 uppercase tracking-wider mb-2">
+                  Selecciona el Motivo de Rechazo *
+                </label>
+                <div className="space-y-2 text-xs font-bold">
+                  {[
+                    { id: 'CLIENTE_NO_ESTA', label: '🏠 Cliente no se encuentra / No abre' },
+                    { id: 'DIRECCION_ERRADA', label: '📍 Dirección errada / No existe' },
+                    { id: 'CLIENTE_CANCELO', label: '🚫 Cliente canceló el pedido' },
+                    { id: 'SIN_ENVASES', label: '💧 No tiene envases para cambio' },
+                    { id: 'SIN_DINERO', label: '💵 No tiene dinero en el momento' },
+                    { id: 'OTRO', label: '✍️ Otro motivo...' },
+                  ].map((option) => (
+                    <button
+                      key={option.id}
+                      type="button"
+                      onClick={() => setRejectionReason(option.id)}
+                      className={`w-full p-3 rounded-xl border text-left transition flex items-center justify-between ${
+                        rejectionReason === option.id
+                          ? 'bg-rose-600 text-white border-rose-600 shadow-sm font-black'
+                          : 'bg-white text-slate-800 border-slate-200 hover:bg-rose-50/50'
+                      }`}
+                    >
+                      <span>{option.label}</span>
+                      {rejectionReason === option.id && <Check className="w-4 h-4 text-white" />}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {rejectionReason === 'OTRO' && (
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Describe el motivo específico:
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={customRejectionDetail}
+                    onChange={(e) => setCustomRejectionDetail(e.target.value)}
+                    placeholder="Ej. Casa en remodelación desocupada"
+                    className="w-full px-3.5 py-2.5 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-rose-500 outline-none font-medium"
+                  />
+                </div>
+              )}
+
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full py-3.5 bg-rose-600 hover:bg-rose-700 text-white font-black rounded-2xl shadow-lg shadow-rose-600/30 transition text-sm disabled:opacity-50 active:scale-[0.98]"
+                >
+                  {isSubmitting ? 'Reportando rechazo...' : 'Confirmar Rechazo y Despejar Ruta'}
                 </button>
               </div>
             </form>
