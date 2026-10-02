@@ -45,17 +45,17 @@ interface OrderCartItem {
 }
 
 const DEFAULT_PRODUCTS: ProductItem[] = [
-  { id: 1, nombre: 'BOTELLON (20L)', categoria: 'BOTELLONES', precioBase: 10000, icono: '💧', preciosDisponibles: '[10500,10000,9500,9000,8933,8500,8000,7000,6000,5000]' },
-  { id: 2, nombre: 'BOTELLON VC (Envase + Agua)', categoria: 'BOTELLONES', precioBase: 40000, icono: '🆕' },
-  { id: 3, nombre: 'BANDEJA 620 ML', categoria: 'BANDEJAS', precioBase: 15000, icono: '📦' },
-  { id: 4, nombre: 'BANDEJA 300 ML', categoria: 'BANDEJAS', precioBase: 14000, icono: '📦' },
-  { id: 5, nombre: 'BANDEJA 250 ML', categoria: 'BANDEJAS', precioBase: 22000, icono: '📦' },
-  { id: 6, nombre: 'BANDEJA 400 ML', categoria: 'BANDEJAS', precioBase: 14000, icono: '📦' },
-  { id: 7, nombre: 'BANDEJA LITRO', categoria: 'BANDEJAS', precioBase: 16000, icono: '📦' },
-  { id: 8, nombre: 'GARRAFA 5 L', categoria: 'GARRAFAS', precioBase: 3500, icono: '🪣' },
-  { id: 9, PAQUETE: 'PAQUETE 360 ML', nombre: 'PAQUETE 360 ML', categoria: 'PAQUETES', precioBase: 3500, icono: '🥤' } as any,
-  { id: 10, nombre: 'PERSONALIZADA', categoria: 'ESPECIAL', precioBase: 22000, icono: '🏷️' },
-  { id: 11, nombre: 'DISPENSADOR DE AGUA', categoria: 'DISPENSADORES', precioBase: 40000, icono: '🚰' },
+  { id: 1, nombre: 'BOTELLON (20L)', categoria: 'BOTELLONES', precioBase: 10000, icono: '💧', preciosDisponibles: '[10500, 10000, 9500, 9000, 8933, 8500, 8000, 7000, 6000, 5000, 0]' },
+  { id: 2, nombre: 'BOTELLON VC (Envase + Agua)', categoria: 'BOTELLONES', precioBase: 40000, icono: '🆕', preciosDisponibles: '[40000, 38000, 35000]' },
+  { id: 3, nombre: 'BANDEJA 620 ML', categoria: 'BANDEJAS', precioBase: 15000, icono: '📦', preciosDisponibles: '[16000, 15000, 14000]' },
+  { id: 4, nombre: 'BANDEJA 300 ML', categoria: 'BANDEJAS', precioBase: 14000, icono: '📦', preciosDisponibles: '[14000]' },
+  { id: 5, nombre: 'BANDEJA 250 ML', categoria: 'BANDEJAS', precioBase: 22000, icono: '📦', preciosDisponibles: '[22000]' },
+  { id: 6, nombre: 'BANDEJA 400 ML', categoria: 'BANDEJAS', precioBase: 14000, icono: '📦', preciosDisponibles: '[14000]' },
+  { id: 7, nombre: 'BANDEJA LITRO', categoria: 'BANDEJAS', precioBase: 16000, icono: '📦', preciosDisponibles: '[16000, 15000, 14000]' },
+  { id: 8, nombre: 'GARRAFA 5 L', categoria: 'GARRAFAS', precioBase: 3500, icono: '🪣', preciosDisponibles: '[3500, 3200, 3000]' },
+  { id: 9, nombre: 'PAQUETE 360 ML', categoria: 'PAQUETES', precioBase: 3500, icono: '🥤', preciosDisponibles: '[3500, 3000, 2880]' },
+  { id: 10, nombre: 'PERSONALIZADA', categoria: 'ESPECIAL', precioBase: 22000, icono: '🏷️', preciosDisponibles: '[22000, 21000, 20000, 19000]' },
+  { id: 11, nombre: 'DISPENSADOR DE AGUA', categoria: 'DISPENSADORES', precioBase: 40000, icono: '🚰', preciosDisponibles: '[40000, 35000]' },
 ];
 
 export function NewOrderModal({
@@ -247,6 +247,51 @@ export function NewOrderModal({
           : item
       )
     );
+  };
+
+  const getAvailablePricesForItem = (item: OrderCartItem): number[] => {
+    const prod = catalogProducts.find((p) => p.id === item.productoId || p.nombre === item.nombreProducto);
+    if (prod?.preciosDisponibles) {
+      try {
+        const parsed = typeof prod.preciosDisponibles === 'string'
+          ? JSON.parse(prod.preciosDisponibles)
+          : prod.preciosDisponibles;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const list = parsed.map(Number);
+          if (!list.includes(item.precioUnitario)) {
+            list.push(item.precioUnitario);
+          }
+          return list;
+        }
+      } catch {}
+    }
+
+    if (item.nombreProducto.includes('BOTELLON (20L)')) {
+      return [10500, 10000, 9500, 9000, 8933, 8500, 8000, 7000, 6000, 5000, 0];
+    }
+    if (item.nombreProducto.includes('BOTELLON VC')) {
+      return [40000, 38000, 35000];
+    }
+    if (item.nombreProducto.includes('PERSONALIZADA')) {
+      return [22000, 21000, 20000, 19000];
+    }
+    if (item.nombreProducto.includes('BANDEJA 620')) {
+      return [16000, 15000, 14000];
+    }
+    if (item.nombreProducto.includes('BANDEJA LITRO')) {
+      return [16000, 15000, 14000];
+    }
+    if (item.nombreProducto.includes('PAQUETE 360')) {
+      return [3500, 3000, 2880];
+    }
+    if (item.nombreProducto.includes('GARRAFA 5 L')) {
+      return [3500, 3200, 3000];
+    }
+    if (item.nombreProducto.includes('DISPENSADOR')) {
+      return [40000, 35000];
+    }
+
+    return [];
   };
 
   const removeItemFromCart = (productoId: number) => {
@@ -642,31 +687,34 @@ export function NewOrderModal({
                     <span className="font-extrabold text-sm text-slate-900 block">
                       {item.nombreProducto}
                     </span>
-                    {item.nombreProducto === 'BOTELLON (20L)' ? (
-                      <div className="flex items-center gap-1.5 mt-1">
-                        <span className="text-[11px] text-slate-500 font-semibold">Tarifa:</span>
-                        <select
-                          value={item.precioUnitario}
-                          onChange={(e) => updateItemPrice(item.productoId, Number(e.target.value))}
-                          className="text-xs font-black bg-sky-50 border border-sky-300 text-sky-900 rounded-lg px-2 py-0.5"
-                        >
-                          <option value={10500}>$10.500</option>
-                          <option value={10000}>$10.000</option>
-                          <option value={9500}>$9.500</option>
-                          <option value={9000}>$9.000</option>
-                          <option value={8933}>$8.933</option>
-                          <option value={8500}>$8.500</option>
-                          <option value={8000}>$8.000</option>
-                          <option value={7000}>$7.000</option>
-                          <option value={6000}>$6.000</option>
-                          <option value={5000}>$5.000</option>
-                        </select>
-                      </div>
-                    ) : (
-                      <span className="text-xs text-slate-500 font-medium">
-                        ${item.precioUnitario.toLocaleString('es-CO')} c/u
-                      </span>
-                    )}
+                    {(() => {
+                      const availablePrices = getAvailablePricesForItem(item);
+                      if (availablePrices.length > 1) {
+                        return (
+                          <div className="flex items-center gap-1.5 mt-1">
+                            <span className="text-[11px] text-slate-500 font-semibold">Tarifa:</span>
+                            <select
+                              value={item.precioUnitario}
+                              onChange={(e) => updateItemPrice(item.productoId, Number(e.target.value))}
+                              className="text-xs font-black bg-sky-50 border border-sky-300 text-sky-900 rounded-lg px-2 py-0.5 focus:ring-2 focus:ring-sky-500 outline-none"
+                            >
+                              {availablePrices.map((price) => (
+                                <option key={price} value={price}>
+                                  {price === 0 ? '$0 (Cambio / Donación / Regalo)' : `$${price.toLocaleString('es-CO')}`}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        );
+                      }
+                      return (
+                        <span className="text-xs text-slate-500 font-medium block mt-0.5">
+                          {item.precioUnitario === 0
+                            ? '$0 (Cambio / Donación / Regalo)'
+                            : `$${item.precioUnitario.toLocaleString('es-CO')} c/u`}
+                        </span>
+                      );
+                    })()}
                   </div>
 
                   {/* Quantity Counter */}

@@ -193,6 +193,7 @@ export function NewClientModal({ isOpen, onClose, onClientCreated }: NewClientMo
               <option value={7000}>$7.000 COP</option>
               <option value={6000}>$6.000 COP</option>
               <option value={5000}>$5.000 COP</option>
+              <option value={0}>$0 COP (Cambio / Donación / Regalo)</option>
             </select>
             <p className="text-[11px] text-sky-700 font-medium">
               Este precio se guardará en la ficha del cliente y se usará automáticamente en cada pedido.
