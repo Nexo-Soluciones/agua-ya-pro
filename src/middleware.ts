@@ -27,10 +27,10 @@ export async function middleware(req: NextRequest) {
   const isAuthRoute = pathname.startsWith('/api/auth/');
   const isProductsGet = pathname.startsWith('/api/products') && req.method === 'GET';
   const isDriversGet = pathname === '/api/drivers' && req.method === 'GET';
-  const isClientsGet = pathname.startsWith('/api/clients') && req.method === 'GET';
+  const isClientsOperational = pathname.startsWith('/api/clients') && ['GET', 'POST', 'PUT', 'PATCH'].includes(req.method);
   const isOrdersOperational = pathname.startsWith('/api/orders') && !pathname.startsWith('/api/orders/daily-close');
 
-  if (isAuthRoute || isProductsGet || isDriversGet || isClientsGet || isOrdersOperational) {
+  if (isAuthRoute || isProductsGet || isDriversGet || isClientsOperational || isOrdersOperational) {
     const response = NextResponse.next();
     addSecurityHeaders(response);
     return response;
@@ -52,7 +52,7 @@ export async function middleware(req: NextRequest) {
       pathname.startsWith('/api/orders/daily-close') ||
       pathname.startsWith('/api/audit') ||
       pathname.startsWith('/api/drivers/seed-gps') ||
-      (pathname.startsWith('/api/clients') && ['POST', 'PUT', 'DELETE'].includes(req.method)) ||
+      (pathname.startsWith('/api/clients') && req.method === 'DELETE') ||
       (pathname.startsWith('/api/drivers') && ['POST', 'DELETE'].includes(req.method));
 
     if (isAdminOnlyRoute) {

@@ -27,7 +27,7 @@ import {
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { DailyClosureModal } from './DailyClosureModal';
-import { NewClientModal } from './NewClientModal';
+import { ClientDirectoryModal } from './ClientDirectoryModal';
 import { ManageDriversModal } from './ManageDriversModal';
 import { AuditLogsModal } from './AuditLogsModal';
 import { HeroVideoBanner } from './HeroVideoBanner';
@@ -221,8 +221,8 @@ export function AdminDashboard({
             onClick={() => setIsNewClientModalOpen(true)}
             className="h-11 px-3.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md shadow-blue-600/25 transition-all duration-200 hover:scale-105 active:scale-95 flex items-center justify-center gap-1.5 text-xs sm:text-sm shrink-0"
           >
-            <UserPlus className="w-4 h-4 text-blue-100" />
-            <span>+ Cliente</span>
+            <Users className="w-4 h-4 text-blue-100" />
+            <span>Directorio Clientes</span>
           </button>
 
           <button
@@ -766,10 +766,13 @@ export function AdminDashboard({
       />
 
 
-      {/* New Standalone Client Registration Modal */}
-      <NewClientModal
+      {/* Client Directory & Registration Modal */}
+      <ClientDirectoryModal
         isOpen={isNewClientModalOpen}
         onClose={() => setIsNewClientModalOpen(false)}
+        onClientUpdated={() => {
+          if (onRefreshDrivers) onRefreshDrivers();
+        }}
       />
 
       {/* Manage & Configure Drivers Modal */}

@@ -145,6 +145,39 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Cliente no encontrado en la base de datos.' }, { status: 404 });
     }
 
+    // Sync client master record with any corrections made during order creation
+    if (nombreCliente || direccionCliente || telefonoCliente) {
+      const cleanPhone = telefonoCliente ? String(telefonoCliente).trim() : client.telefono;
+      const cleanNombre = nombreCliente ? String(nombreCliente).trim() : client.nombre;
+      const cleanDir = direccionCliente ? String(direccionCliente).trim() : client.direccion;
+      const cleanBarrio = barrioSector !== undefined ? (barrioSector ? String(barrioSector).trim() : null) : client.barrioSector;
+      const cleanNotas = notasUbicacion !== undefined ? (notasUbicacion ? String(notasUbicacion).trim() : null) : client.notasUbicacion;
+
+      let canUpdatePhone = true;
+      if (cleanPhone !== client.telefono) {
+        const phoneConflict = await db.client.findFirst({
+          where: { telefono: cleanPhone, id: { not: targetClientId } },
+        });
+        if (phoneConflict) {
+          canUpdatePhone = false;
+        }
+      }
+
+      await db.client.update({
+        where: { id: targetClientId },
+        data: {
+          nombre: cleanNombre,
+          telefono: canUpdatePhone ? cleanPhone : client.telefono,
+          direccion: cleanDir,
+          barrioSector: cleanBarrio,
+          tipoCliente: tipoCliente || client.tipoCliente,
+          notasUbicacion: cleanNotas,
+          requiereFactura: hasFactura,
+          numeroFactura: numFactura,
+        },
+      });
+    }
+
     // 2. Resolve Repartidor safely
     let finalRepartidorId: number | null = null;
     if (
