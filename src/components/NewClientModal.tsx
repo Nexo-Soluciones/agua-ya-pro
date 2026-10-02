@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, UserPlus, Phone, MapPin, CheckCircle2, AlertCircle, Building2, DollarSign } from 'lucide-react';
+import { X, UserPlus, Phone, MapPin, CheckCircle2, AlertCircle, Building2, DollarSign, FileText } from 'lucide-react';
 
 interface NewClientModalProps {
   isOpen: boolean;
@@ -17,6 +17,8 @@ export function NewClientModal({ isOpen, onClose, onClientCreated }: NewClientMo
   const [tipoCliente, setTipoCliente] = useState<'VIEJO' | 'NUEVO'>('VIEJO');
   const [precioAcordado, setPrecioAcordado] = useState<number>(7000);
   const [notasUbicacion, setNotasUbicacion] = useState('');
+  const [requiereFactura, setRequiereFactura] = useState(false);
+  const [numeroFactura, setNumeroFactura] = useState('');
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -47,6 +49,8 @@ export function NewClientModal({ isOpen, onClose, onClientCreated }: NewClientMo
           tipoCliente,
           precioAcordado,
           notasUbicacion: notasUbicacion.trim() || undefined,
+          requiereFactura,
+          numeroFactura: requiereFactura ? numeroFactura.trim() || undefined : undefined,
         }),
       });
 
@@ -67,6 +71,8 @@ export function NewClientModal({ isOpen, onClose, onClientCreated }: NewClientMo
         setTipoCliente('VIEJO');
         setPrecioAcordado(7000);
         setNotasUbicacion('');
+        setRequiereFactura(false);
+        setNumeroFactura('');
       }, 800);
     } catch (err: any) {
       setErrorMsg(err.message);
@@ -191,6 +197,63 @@ export function NewClientModal({ isOpen, onClose, onClientCreated }: NewClientMo
             <p className="text-[11px] text-sky-700 font-medium">
               Este precio se guardará en la ficha del cliente y se usará automáticamente en cada pedido.
             </p>
+          </div>
+
+          {/* Facturación: Check Sí/No y Número de Factura */}
+          <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl space-y-2.5">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                <FileText className="w-4 h-4 text-sky-600" />
+                <span>¿Factura?</span>
+              </label>
+
+              {/* Botones Sí / No */}
+              <div className="flex items-center gap-1 bg-slate-200/80 p-1 rounded-xl">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRequiereFactura(false);
+                    setNumeroFactura('');
+                  }}
+                  className={`px-3.5 py-1 rounded-lg text-xs font-black transition ${
+                    !requiereFactura
+                      ? 'bg-white text-slate-800 shadow-xs'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  No
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRequiereFactura(true)}
+                  className={`px-3.5 py-1 rounded-lg text-xs font-black transition ${
+                    requiereFactura
+                      ? 'bg-sky-600 text-white shadow-xs'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  Sí
+                </button>
+              </div>
+            </div>
+
+            {requiereFactura && (
+              <div className="pt-2 border-t border-slate-200 animate-in fade-in duration-150">
+                <label className="block text-xs font-bold text-sky-900 mb-1">
+                  Número de Factura
+                </label>
+                <div className="relative">
+                  <FileText className="w-4 h-4 text-sky-500 absolute left-3 top-3" />
+                  <input
+                    type="text"
+                    placeholder="Ej: FAC-1045 o 1045"
+                    value={numeroFactura}
+                    onChange={(e) => setNumeroFactura(e.target.value)}
+                    className="w-full pl-9 pr-3.5 py-2.5 bg-white border border-sky-300 rounded-xl text-sm font-bold text-sky-900 focus:outline-none focus:ring-2 focus:ring-sky-500 shadow-xs"
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           <div>

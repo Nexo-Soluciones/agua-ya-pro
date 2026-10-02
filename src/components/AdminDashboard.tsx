@@ -543,9 +543,14 @@ export function AdminDashboard({
 
                   {/* Client Info */}
                   <div className="space-y-1.5 mb-4">
-                    <div className="flex items-center gap-2 text-slate-900 font-bold text-base">
+                    <div className="flex items-center gap-2 text-slate-900 font-bold text-base flex-wrap">
                       <User className="w-4 h-4 text-slate-400 shrink-0" />
                       <span>{order.cliente?.nombre || 'Entrega Directa'}</span>
+                      {order.cliente?.requiereFactura && (
+                        <span className="text-[10px] bg-sky-100 text-sky-800 border border-sky-200 px-2 py-0.5 rounded-full font-black">
+                          📄 Factura {order.cliente?.numeroFactura ? `#${order.cliente?.numeroFactura}` : ''}
+                        </span>
+                      )}
                       <span
                         className={`text-[10px] px-2 py-0.5 rounded-full font-extrabold ml-auto ${
                           order.cliente?.tipoCliente === 'VIEJO'

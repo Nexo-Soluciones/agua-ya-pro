@@ -15,6 +15,7 @@ import {
   Package,
   Droplet,
   ShoppingBag,
+  FileText,
 } from 'lucide-react';
 
 interface NewOrderModalProps {
@@ -76,6 +77,8 @@ export function NewOrderModal({
   const [tipoCliente, setTipoCliente] = useState<'VIEJO' | 'NUEVO'>('VIEJO');
   const [precioAcordadoBotellon, setPrecioAcordadoBotellon] = useState<number>(7000);
   const [notasUbicacion, setNotasUbicacion] = useState('');
+  const [requiereFactura, setRequiereFactura] = useState(false);
+  const [numeroFactura, setNumeroFactura] = useState('');
 
   // Products & Cart
   const [catalogProducts, setCatalogProducts] = useState<ProductItem[]>(DEFAULT_PRODUCTS);
@@ -144,6 +147,8 @@ export function NewOrderModal({
     const agreedPrice = client.precioAcordado || (client.tipoCliente === 'NUEVO' ? 8000 : 7000);
     setPrecioAcordadoBotellon(agreedPrice);
     setNotasUbicacion(client.notasUbicacion || '');
+    setRequiereFactura(Boolean(client.requiereFactura));
+    setNumeroFactura(client.numeroFactura || '');
     setSearchResults([]);
     setSearchQuery('');
 
@@ -166,6 +171,8 @@ export function NewOrderModal({
     setTipoCliente('NUEVO');
     setPrecioAcordadoBotellon(8000);
     setNotasUbicacion('');
+    setRequiereFactura(false);
+    setNumeroFactura('');
     setNumeroRemision('');
     setCartItems([
       {
@@ -295,6 +302,8 @@ export function NewOrderModal({
           metodoPago,
           numeroRemision: numeroRemision.trim() || undefined,
           creadoPor: typeof window !== 'undefined' ? (localStorage.getItem('aguaya_admin_name') || 'Administración') : 'Administración',
+          requiereFactura,
+          numeroFactura: requiereFactura ? numeroFactura.trim() || undefined : undefined,
         }),
       });
 
@@ -398,11 +407,18 @@ export function NewOrderModal({
                       <p className="font-extrabold text-slate-900 group-hover:text-sky-700">{client.nombre}</p>
                       <p className="text-xs text-slate-500 mt-0.5">📞 {client.telefono} - 📍 {client.direccion}</p>
                     </div>
-                    <span className={`text-[10px] px-2.5 py-1 rounded-full font-black uppercase shrink-0 ${
-                      client.tipoCliente === 'VIEJO' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
-                    }`}>
-                      {client.tipoCliente === 'VIEJO' ? `Frecuente ($${(client.precioAcordado || 7000).toLocaleString('es-CO')})` : 'Nuevo'}
-                    </span>
+                    <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                      {client.requiereFactura && (
+                        <span className="text-[10px] bg-sky-100 text-sky-800 border border-sky-200 px-2 py-0.5 rounded-full font-black flex items-center gap-1">
+                          📄 Factura {client.numeroFactura ? `#${client.numeroFactura}` : ''}
+                        </span>
+                      )}
+                      <span className={`text-[10px] px-2.5 py-1 rounded-full font-black uppercase shrink-0 ${
+                        client.tipoCliente === 'VIEJO' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                      }`}>
+                        {client.tipoCliente === 'VIEJO' ? `Frecuente ($${(client.precioAcordado || 7000).toLocaleString('es-CO')})` : 'Nuevo'}
+                      </span>
+                    </div>
                   </button>
                 ))}
               </div>
@@ -411,9 +427,16 @@ export function NewOrderModal({
 
           {selectedClient && (
             <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center justify-between shadow-xs">
-              <div className="flex items-center gap-2 text-emerald-900 text-xs sm:text-sm font-semibold">
-                <UserCheck className="w-5 h-5 text-emerald-600 shrink-0" />
-                <span>Cliente: <strong>{selectedClient.nombre}</strong> (Tarifa Botellón: ${precioAcordadoBotellon.toLocaleString('es-CO')})</span>
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-2 text-emerald-900 text-xs sm:text-sm font-semibold">
+                  <UserCheck className="w-5 h-5 text-emerald-600 shrink-0" />
+                  <span>Cliente: <strong>{selectedClient.nombre}</strong> (Tarifa: ${precioAcordadoBotellon.toLocaleString('es-CO')})</span>
+                </div>
+                {selectedClient.requiereFactura && (
+                  <p className="text-xs text-emerald-800 font-bold pl-7 flex items-center gap-1">
+                    📄 Factura Requerida: <span className="underline">{selectedClient.numeroFactura ? `#${selectedClient.numeroFactura}` : 'Sí'}</span>
+                  </p>
+                )}
               </div>
               <button
                 type="button"
@@ -457,6 +480,50 @@ export function NewOrderModal({
                   />
                 </div>
               </div>
+            </div>
+
+            {/* Facturación: Check Sí/No y Número de Factura */}
+            <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                  <FileText className="w-4 h-4 text-sky-600" />
+                  <span>¿Factura?</span>
+                </label>
+                <div className="flex items-center gap-1 bg-slate-200/80 p-0.5 rounded-lg">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRequiereFactura(false);
+                      setNumeroFactura('');
+                    }}
+                    className={`px-3 py-0.5 rounded-md text-xs font-bold transition ${
+                      !requiereFactura ? 'bg-white text-slate-800 shadow-xs' : 'text-slate-500'
+                    }`}
+                  >
+                    No
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRequiereFactura(true)}
+                    className={`px-3 py-0.5 rounded-md text-xs font-bold transition ${
+                      requiereFactura ? 'bg-sky-600 text-white shadow-xs' : 'text-slate-500'
+                    }`}
+                  >
+                    Sí
+                  </button>
+                </div>
+              </div>
+              {requiereFactura && (
+                <div className="pt-1.5 border-t border-slate-200">
+                  <input
+                    type="text"
+                    placeholder="Número de Factura (ej: 1045 o FAC-001)"
+                    value={numeroFactura}
+                    onChange={(e) => setNumeroFactura(e.target.value)}
+                    className="w-full px-3 py-1.5 bg-white border border-sky-300 rounded-lg text-xs font-bold text-sky-900 focus:outline-none focus:ring-2 focus:ring-sky-500 shadow-xs"
+                  />
+                </div>
+              )}
             </div>
 
             <div>

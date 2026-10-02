@@ -42,6 +42,8 @@ model Client {
   tipoCliente    String   @default("VIEJO") // "VIEJO" | "NUEVO"
   precioAcordado Float?   @default(7000)
   notasUbicacion String?
+  requiereFactura Boolean @default(false)
+  numeroFactura   String?
   lat            Float?
   lng            Float?
   createdAt      DateTime @default(now())

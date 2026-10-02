@@ -37,8 +37,20 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { nombre, telefono, direccion, barrioSector, tipoCliente, precioAcordado, notasUbicacion } = body;
+    const {
+      nombre,
+      telefono,
+      direccion,
+      barrioSector,
+      tipoCliente,
+      precioAcordado,
+      notasUbicacion,
+      requiereFactura,
+      numeroFactura,
+    } = body;
     const precio = precioAcordado !== undefined && precioAcordado !== null ? parseFloat(precioAcordado) : (tipoCliente === 'NUEVO' ? 8000 : 7000);
+    const hasFactura = Boolean(requiereFactura);
+    const numFactura = hasFactura && numeroFactura ? String(numeroFactura).trim() : null;
 
     if (!nombre || !telefono || !direccion) {
       return NextResponse.json({ error: 'Nombre, teléfono y dirección son obligatorios' }, { status: 400 });
@@ -53,6 +65,8 @@ export async function POST(req: NextRequest) {
         tipoCliente: tipoCliente || 'VIEJO',
         precioAcordado: precio,
         notasUbicacion,
+        requiereFactura: hasFactura,
+        numeroFactura: numFactura,
       },
       create: {
         nombre,
@@ -62,6 +76,8 @@ export async function POST(req: NextRequest) {
         tipoCliente: tipoCliente || 'NUEVO',
         precioAcordado: precio,
         notasUbicacion,
+        requiereFactura: hasFactura,
+        numeroFactura: numFactura,
       },
     });
 

@@ -71,9 +71,13 @@ export async function POST(req: NextRequest) {
       metodoPago,
       numeroRemision,
       creadoPor: requestCreadoPor,
+      requiereFactura,
+      numeroFactura,
     } = body;
 
     const finalCreadoPor = requestCreadoPor || session?.nombre || 'Administración';
+    const hasFactura = Boolean(requiereFactura);
+    const numFactura = hasFactura && numeroFactura ? String(numeroFactura).trim() : null;
 
     // 1. Resolve Target Client safely
     let targetClientId: number | null = null;
@@ -118,6 +122,8 @@ export async function POST(req: NextRequest) {
           tipoCliente: tipoCliente || 'VIEJO',
           precioAcordado: basePrice,
           notasUbicacion: cleanNotas,
+          requiereFactura: hasFactura,
+          numeroFactura: numFactura,
         },
         create: {
           nombre: cleanNombre,
@@ -127,6 +133,8 @@ export async function POST(req: NextRequest) {
           tipoCliente: tipoCliente || 'NUEVO',
           precioAcordado: basePrice,
           notasUbicacion: cleanNotas,
+          requiereFactura: hasFactura,
+          numeroFactura: numFactura,
         },
       });
       targetClientId = client.id;
