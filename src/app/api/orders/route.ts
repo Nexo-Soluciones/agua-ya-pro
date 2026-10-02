@@ -12,7 +12,10 @@ export async function GET(req: NextRequest) {
     const whereClause: any = {};
 
     if (driverId) {
-      whereClause.repartidorId = parseInt(driverId, 10);
+      const parsedDriverId = parseInt(driverId, 10);
+      if (!isNaN(parsedDriverId)) {
+        whereClause.repartidorId = parsedDriverId;
+      }
     }
 
     if (status) {
@@ -43,9 +46,9 @@ export async function GET(req: NextRequest) {
     }));
 
     return NextResponse.json(orders);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching orders:', error);
-    return NextResponse.json({ error: 'Error al obtener pedidos' }, { status: 500 });
+    return NextResponse.json({ error: error?.message || 'Error al obtener pedidos' }, { status: 500 });
   }
 }
 
@@ -72,44 +75,90 @@ export async function POST(req: NextRequest) {
 
     const finalCreadoPor = requestCreadoPor || session?.nombre || 'Administración';
 
-    let targetClientId = clienteId;
+    // 1. Resolve Target Client safely
+    let targetClientId: number | null = null;
+    if (
+      clienteId !== undefined &&
+      clienteId !== null &&
+      clienteId !== '' &&
+      clienteId !== 'null' &&
+      clienteId !== 'undefined'
+    ) {
+      const parsed = parseInt(String(clienteId), 10);
+      if (!isNaN(parsed) && parsed > 0) {
+        targetClientId = parsed;
+      }
+    }
 
     if (!targetClientId) {
       if (!telefonoCliente || !nombreCliente || !direccionCliente) {
         return NextResponse.json(
-          { error: 'Datos de cliente incompletos (Nombre, teléfono y dirección obligatorios)' },
+          { error: 'Datos de cliente incompletos (Nombre, teléfono y dirección son obligatorios).' },
           { status: 400 }
         );
       }
 
-      let existingClient = await db.client.findUnique({
-        where: { telefono: telefonoCliente },
-      });
+      const cleanPhone = String(telefonoCliente).trim();
+      const cleanNombre = String(nombreCliente).trim();
+      const cleanDir = String(direccionCliente).trim();
+      const cleanBarrio = barrioSector ? String(barrioSector).trim() : '';
+      const cleanNotas = notasUbicacion ? String(notasUbicacion).trim() : '';
 
-      if (existingClient) {
-        targetClientId = existingClient.id;
-      } else {
-        const newClient = await db.client.create({
-          data: {
-            nombre: nombreCliente,
-            telefono: telefonoCliente,
-            direccion: direccionCliente,
-            barrioSector: barrioSector || '',
-            tipoCliente: tipoCliente || 'NUEVO',
-            precioAcordado: requestUnitPrice ? parseFloat(requestUnitPrice) : (tipoCliente === 'NUEVO' ? 8000 : 7000),
-            notasUbicacion: notasUbicacion || '',
-          },
-        });
-        targetClientId = newClient.id;
-      }
+      const basePrice = requestUnitPrice !== undefined && requestUnitPrice !== null
+        ? Math.max(0, parseFloat(String(requestUnitPrice)) || 7000)
+        : (tipoCliente === 'NUEVO' ? 8000 : 7000);
+
+      // Upsert client to avoid unique constraint collisions on phone number
+      const client = await db.client.upsert({
+        where: { telefono: cleanPhone },
+        update: {
+          nombre: cleanNombre,
+          direccion: cleanDir,
+          barrioSector: cleanBarrio,
+          tipoCliente: tipoCliente || 'VIEJO',
+          precioAcordado: basePrice,
+          notasUbicacion: cleanNotas,
+        },
+        create: {
+          nombre: cleanNombre,
+          telefono: cleanPhone,
+          direccion: cleanDir,
+          barrioSector: cleanBarrio,
+          tipoCliente: tipoCliente || 'NUEVO',
+          precioAcordado: basePrice,
+          notasUbicacion: cleanNotas,
+        },
+      });
+      targetClientId = client.id;
     }
 
     const client = await db.client.findUnique({ where: { id: targetClientId } });
     if (!client) {
-      return NextResponse.json({ error: 'Cliente no encontrado' }, { status: 404 });
+      return NextResponse.json({ error: 'Cliente no encontrado en la base de datos.' }, { status: 404 });
     }
 
-    // Process items or fallback to single botellon calculation
+    // 2. Resolve Repartidor safely
+    let finalRepartidorId: number | null = null;
+    if (
+      repartidorId !== undefined &&
+      repartidorId !== null &&
+      repartidorId !== '' &&
+      repartidorId !== 'null' &&
+      repartidorId !== 'undefined'
+    ) {
+      const parsedRepId = parseInt(String(repartidorId), 10);
+      if (!isNaN(parsedRepId) && parsedRepId > 0) {
+        const driverExists = await db.user.findFirst({
+          where: { id: parsedRepId, rol: 'REPARTIDOR' },
+          select: { id: true },
+        });
+        if (driverExists) {
+          finalRepartidorId = driverExists.id;
+        }
+      }
+    }
+
+    // 3. Process items or fallback to single botellon calculation
     let calculatedTotal = 0;
     let totalBotellonesQty = 0;
     let orderItemsData: Array<{
@@ -122,19 +171,26 @@ export async function POST(req: NextRequest) {
     let summaryText = '';
 
     if (Array.isArray(items) && items.length > 0) {
+      // Check valid product IDs in DB to prevent foreign key errors
+      const validProducts = await db.product.findMany({ select: { id: true } });
+      const validProductIds = new Set(validProducts.map((p) => p.id));
+
       orderItemsData = items.map((item: any) => {
-        const itemQty = parseInt(item.cantidad || '1', 10);
-        const itemPrice = parseFloat(item.precioUnitario || '0');
+        const itemQty = Math.max(1, parseInt(String(item.cantidad || '1'), 10) || 1);
+        const itemPrice = Math.max(0, parseFloat(String(item.precioUnitario || '0')) || 0);
         const itemSubtotal = itemQty * itemPrice;
         calculatedTotal += itemSubtotal;
 
-        if (item.nombreProducto.toUpperCase().includes('BOTELLON')) {
+        const pId = item.productoId ? parseInt(String(item.productoId), 10) : null;
+        const safeProductId = pId && !isNaN(pId) && validProductIds.has(pId) ? pId : null;
+
+        if (String(item.nombreProducto || '').toUpperCase().includes('BOTELLON')) {
           totalBotellonesQty += itemQty;
         }
 
         return {
-          productoId: item.productoId ? parseInt(item.productoId, 10) : null,
-          nombreProducto: item.nombreProducto,
+          productoId: safeProductId,
+          nombreProducto: String(item.nombreProducto || 'Producto'),
           cantidad: itemQty,
           precioUnitario: itemPrice,
           subtotal: itemSubtotal,
@@ -146,10 +202,10 @@ export async function POST(req: NextRequest) {
         totalBotellonesQty = orderItemsData.reduce((sum, i) => sum + i.cantidad, 0);
       }
     } else {
-      // Legacy fallback
-      const qty = parseInt(cantidadBotellones || '1', 10);
+      // Fallback
+      const qty = Math.max(1, parseInt(String(cantidadBotellones || '1'), 10) || 1);
       const unitPrice = requestUnitPrice !== undefined && requestUnitPrice !== null
-        ? parseFloat(requestUnitPrice)
+        ? Math.max(0, parseFloat(String(requestUnitPrice)) || 7000)
         : (client.precioAcordado || (client.tipoCliente === 'NUEVO' ? 8000 : 7000));
       calculatedTotal = qty * unitPrice;
       totalBotellonesQty = qty;
@@ -166,23 +222,30 @@ export async function POST(req: NextRequest) {
       ];
     }
 
-    // Get order count for numeroPedido
-    const orderCount = await db.order.count();
-    const numeroPedido = 1001 + orderCount;
+    // 4. Calculate unique and strictly increasing numeroPedido
+    const lastOrder = await db.order.findFirst({
+      orderBy: { id: 'desc' },
+      select: { numeroPedido: true, id: true },
+    });
+    const lastNum = lastOrder?.numeroPedido || 1000;
+    const numeroPedido = Math.max(lastNum + 1, (lastOrder?.id || 0) + 1001);
 
+    const estadoEntrega = finalRepartidorId ? 'EN_CAMINO' : 'PENDIENTE';
+
+    // 5. Create the Order with atomic items
     const order = await db.order.create({
       data: {
         numeroPedido,
         clienteId: targetClientId,
-        repartidorId: repartidorId ? parseInt(repartidorId, 10) : null,
+        repartidorId: finalRepartidorId,
         cantidadBotellones: totalBotellonesQty,
         precioUnitario: orderItemsData[0]?.precioUnitario || 7000,
         montoTotal: calculatedTotal,
         resumenProductos: summaryText,
         metodoPago: metodoPago || 'EFECTIVO',
         estadoPago: metodoPago === 'EFECTIVO' ? 'VERIFICADO' : 'PENDIENTE',
-        estadoEntrega: repartidorId ? 'EN_CAMINO' : 'PENDIENTE',
-        numeroRemision: numeroRemision || null,
+        estadoEntrega,
+        numeroRemision: numeroRemision ? String(numeroRemision).trim() : null,
         creadoPor: finalCreadoPor,
         items: {
           create: orderItemsData,
@@ -195,7 +258,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Record audit event for operational traceability
+    // 6. Record audit log
     await recordAudit({
       usuarioId: session?.userId || null,
       rol: session?.rol || 'ADMIN',
@@ -204,8 +267,11 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json(order, { status: 201 });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating order:', error);
-    return NextResponse.json({ error: 'Error al crear el pedido' }, { status: 500 });
+    return NextResponse.json(
+      { error: error?.message || 'Error interno al crear el pedido' },
+      { status: 500 }
+    );
   }
 }

@@ -27,8 +27,10 @@ export async function middleware(req: NextRequest) {
   const isAuthRoute = pathname.startsWith('/api/auth/');
   const isProductsGet = pathname.startsWith('/api/products') && req.method === 'GET';
   const isDriversGet = pathname === '/api/drivers' && req.method === 'GET';
+  const isClientsGet = pathname.startsWith('/api/clients') && req.method === 'GET';
+  const isOrdersOperational = pathname.startsWith('/api/orders') && !pathname.startsWith('/api/orders/daily-close');
 
-  if (isAuthRoute || isProductsGet || isDriversGet) {
+  if (isAuthRoute || isProductsGet || isDriversGet || isClientsGet || isOrdersOperational) {
     const response = NextResponse.next();
     addSecurityHeaders(response);
     return response;
