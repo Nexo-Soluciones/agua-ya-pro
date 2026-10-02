@@ -4,24 +4,28 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function GET(req: NextRequest) {
   try {
     const searchParams = req.nextUrl.searchParams;
-    const query = searchParams.get('q');
+    const query = searchParams.get('q')?.trim();
 
-    if (query) {
+    if (query && query.length >= 2) {
       const clients = await db.client.findMany({
         where: {
           OR: [
-            { nombre: { contains: query } },
+            { nombre: { contains: query, mode: 'insensitive' } },
             { telefono: { contains: query } },
+            { direccion: { contains: query, mode: 'insensitive' } },
+            { barrioSector: { contains: query, mode: 'insensitive' } },
           ],
         },
-        orderBy: { nombre: 'asc' },
-        take: 10,
+        orderBy: { updatedAt: 'desc' },
+        take: 20,
       });
       return NextResponse.json(clients);
     }
 
+    // Default limit to 50 recent clients to keep frontend fast with large database
     const clients = await db.client.findMany({
-      orderBy: { nombre: 'asc' },
+      orderBy: { updatedAt: 'desc' },
+      take: 50,
     });
     return NextResponse.json(clients);
   } catch (error) {
