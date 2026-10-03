@@ -132,7 +132,12 @@ export function DriverView({ driver, orders, onUpdateOrder }: DriverViewProps) {
 
   const openDeliveryModal = (order: any) => {
     setSelectedOrderForDelivery(order);
-    setCustomBottles(order.cantidadBotellones || 1);
+    const botellonItem = order.items?.find(
+      (i: any) =>
+        i.nombreProducto.toUpperCase().includes('BOTELLON (20L)') ||
+        (i.nombreProducto.toUpperCase().includes('BOTELLON') && !i.nombreProducto.toUpperCase().includes('VC'))
+    );
+    setCustomBottles(botellonItem ? botellonItem.cantidad : (order.cantidadBotellones || 1));
     setMetodoPago((order.metodoPago as any) || 'EFECTIVO');
     setComprobanteRef(order.comprobanteRef || '');
     setNumeroRemision(order.numeroRemision || '');
@@ -143,15 +148,28 @@ export function DriverView({ driver, orders, onUpdateOrder }: DriverViewProps) {
     e.preventDefault();
     if (!selectedOrderForDelivery) return;
 
-    const unitPrice = selectedOrderForDelivery.precioUnitario || 7000;
-    const calculatedTotal = customBottles * unitPrice;
+    const botellonItem = selectedOrderForDelivery.items?.find(
+      (i: any) =>
+        i.nombreProducto.toUpperCase().includes('BOTELLON (20L)') ||
+        (i.nombreProducto.toUpperCase().includes('BOTELLON') && !i.nombreProducto.toUpperCase().includes('VC'))
+    );
+    const hasBotellon = Boolean(botellonItem) || (!selectedOrderForDelivery.items?.length);
+    const botellonUnitPrice = botellonItem?.precioUnitario || selectedOrderForDelivery.precioUnitario || 7000;
+    const otherItems = selectedOrderForDelivery.items
+      ? selectedOrderForDelivery.items.filter((i: any) => i.id !== botellonItem?.id)
+      : [];
+    const otherItemsTotal = otherItems.reduce((sum: number, i: any) => sum + (i.subtotal || i.cantidad * i.precioUnitario), 0);
+
+    const finalTotal = hasBotellon
+      ? (customBottles * botellonUnitPrice) + otherItemsTotal
+      : (otherItemsTotal > 0 ? otherItemsTotal : (selectedOrderForDelivery.montoTotal || 0));
 
     setIsSubmitting(true);
     try {
       await onUpdateOrder(selectedOrderForDelivery.id, {
         estadoEntrega: 'ENTREGADO',
-        cantidadBotellones: customBottles,
-        montoTotal: calculatedTotal,
+        cantidadBotellones: hasBotellon ? customBottles : selectedOrderForDelivery.cantidadBotellones,
+        montoTotal: finalTotal,
         metodoPago,
         estadoPago: metodoPago === 'EFECTIVO' ? 'VERIFICADO' : metodoPago === 'CREDITO' ? 'PENDIENTE' : 'PENDIENTE',
         comprobanteRef: metodoPago === 'NEQUI' || metodoPago === 'TRANSFERENCIA' ? comprobanteRef : undefined,
@@ -633,41 +651,98 @@ export function DriverView({ driver, orders, onUpdateOrder }: DriverViewProps) {
                 </p>
               </div>
 
-              {/* Botellones Quantity Stepper */}
-              <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-2">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <span className="text-xs font-black text-slate-900 block">Cantidad Entregada</span>
-                    <span className="text-[10px] text-slate-500 font-medium">¿Pidió más o menos botellones?</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setCustomBottles(Math.max(1, customBottles - 1))}
-                      className="w-9 h-9 rounded-xl bg-white border border-slate-300 font-black text-slate-800 hover:bg-slate-100 flex items-center justify-center text-lg active:scale-95 shadow-xs"
-                    >
-                      -
-                    </button>
-                    <span className="w-8 text-center font-black text-lg text-emerald-700 font-mono">
-                      {customBottles}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setCustomBottles(customBottles + 1)}
-                      className="w-9 h-9 rounded-xl bg-emerald-600 font-black text-white hover:bg-emerald-700 flex items-center justify-center text-lg shadow-sm active:scale-95"
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
+              {/* Product Breakdown Box */}
+              {(() => {
+                const botellonItem = selectedOrderForDelivery.items?.find(
+                  (i: any) =>
+                    i.nombreProducto.toUpperCase().includes('BOTELLON (20L)') ||
+                    (i.nombreProducto.toUpperCase().includes('BOTELLON') && !i.nombreProducto.toUpperCase().includes('VC'))
+                );
+                const hasBotellonItem = Boolean(botellonItem) || (!selectedOrderForDelivery.items?.length);
+                const botellonUnitPrice = botellonItem?.precioUnitario || selectedOrderForDelivery.precioUnitario || 7000;
+                const additionalItems = selectedOrderForDelivery.items
+                  ? selectedOrderForDelivery.items.filter((i: any) => i.id !== botellonItem?.id)
+                  : [];
+                const additionalItemsTotal = additionalItems.reduce((sum: number, item: any) => sum + (item.subtotal || item.cantidad * item.precioUnitario), 0);
+                const calculatedDeliveryTotal = hasBotellonItem
+                  ? (customBottles * botellonUnitPrice) + additionalItemsTotal
+                  : (additionalItemsTotal > 0 ? additionalItemsTotal : (selectedOrderForDelivery.montoTotal || 0));
 
-                <div className="flex items-center justify-between pt-2 border-t border-slate-200 text-xs font-black">
-                  <span className="text-slate-600">Total a Cobrar:</span>
-                  <span className="text-base text-slate-900">
-                    ${(customBottles * (selectedOrderForDelivery.precioUnitario || 7000)).toLocaleString('es-CO')} COP
-                  </span>
-                </div>
-              </div>
+                return (
+                  <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-3">
+                    <div className="flex items-center justify-between pb-1 border-b border-slate-200 text-xs font-black text-slate-700">
+                      <span>📦 Detalle del Pedido</span>
+                      <span>Subtotal</span>
+                    </div>
+
+                    {/* Botellones with Stepper (if present) */}
+                    {hasBotellonItem && (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <span className="text-xs font-black text-slate-900 block">💧 BOTELLÓN (20L)</span>
+                            <span className="text-[10px] text-slate-500 font-medium">
+                              ${botellonUnitPrice.toLocaleString('es-CO')} c/u
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setCustomBottles(Math.max(1, customBottles - 1))}
+                              className="w-9 h-9 rounded-xl bg-white border border-slate-300 font-black text-slate-800 hover:bg-slate-100 flex items-center justify-center text-lg active:scale-95 shadow-xs"
+                            >
+                              -
+                            </button>
+                            <span className="w-8 text-center font-black text-lg text-emerald-700 font-mono">
+                              {customBottles}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setCustomBottles(customBottles + 1)}
+                              className="w-9 h-9 rounded-xl bg-emerald-600 font-black text-white hover:bg-emerald-700 flex items-center justify-center text-lg shadow-sm active:scale-95"
+                            >
+                              +
+                            </button>
+                          </div>
+                        </div>
+                        <div className="text-right text-xs font-bold text-slate-700">
+                          Subtotal Botellones: ${(customBottles * botellonUnitPrice).toLocaleString('es-CO')}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Additional Products (Bandejas, Garrafas, etc.) */}
+                    {additionalItems.length > 0 && (
+                      <div className="space-y-1.5 pt-2 border-t border-slate-200">
+                        <span className="text-[11px] font-black text-slate-500 uppercase tracking-wider block">
+                          Productos Adicionales:
+                        </span>
+                        {additionalItems.map((item: any, idx: number) => (
+                          <div
+                            key={item.id || idx}
+                            className="flex items-center justify-between text-xs py-1.5 px-2.5 bg-white rounded-xl border border-slate-200"
+                          >
+                            <span className="font-extrabold text-slate-800">
+                              {item.cantidad}x {item.nombreProducto}
+                            </span>
+                            <span className="font-black text-slate-700">
+                              ${(item.subtotal || item.cantidad * item.precioUnitario).toLocaleString('es-CO')}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Grand Total Bar */}
+                    <div className="flex items-center justify-between pt-2.5 border-t-2 border-slate-300 text-xs font-black">
+                      <span className="text-slate-700 text-sm">Total a Cobrar:</span>
+                      <span className="text-lg text-emerald-800 font-black bg-emerald-100 px-3 py-1 rounded-xl border border-emerald-300">
+                        ${calculatedDeliveryTotal.toLocaleString('es-CO')} COP
+                      </span>
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Forma de Pago */}
               <div>

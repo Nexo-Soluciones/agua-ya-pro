@@ -28,6 +28,7 @@ export async function PATCH(
 
     const existingOrder = await db.order.findUnique({
       where: { id: orderId },
+      include: { items: true },
     });
 
     if (!existingOrder) {
@@ -41,14 +42,6 @@ export async function PATCH(
       if (estadoEntrega === 'ENTREGADO') {
         updateData.fechaEntrega = new Date();
       }
-    }
-
-    if (cantidadBotellones !== undefined && cantidadBotellones > 0) {
-      updateData.cantidadBotellones = parseInt(cantidadBotellones, 10);
-    }
-
-    if (montoTotal !== undefined && montoTotal >= 0) {
-      updateData.montoTotal = parseFloat(montoTotal);
     }
 
     if (precioUnitario !== undefined && precioUnitario >= 0) {
@@ -76,6 +69,45 @@ export async function PATCH(
 
     if (numeroRemision !== undefined) {
       updateData.numeroRemision = numeroRemision;
+    }
+
+    // Synchronize Botellon OrderItem if cantidadBotellones changed
+    if (cantidadBotellones !== undefined && parseInt(cantidadBotellones, 10) > 0) {
+      const newBotellonesQty = parseInt(cantidadBotellones, 10);
+      updateData.cantidadBotellones = newBotellonesQty;
+
+      if (existingOrder.items && existingOrder.items.length > 0) {
+        const botellonItem = existingOrder.items.find(
+          (i) =>
+            i.nombreProducto.toUpperCase().includes('BOTELLON (20L)') ||
+            (i.nombreProducto.toUpperCase().includes('BOTELLON') && !i.nombreProducto.toUpperCase().includes('VC'))
+        );
+
+        if (botellonItem) {
+          const unitPrice = updateData.precioUnitario !== undefined ? updateData.precioUnitario : botellonItem.precioUnitario;
+          await db.orderItem.update({
+            where: { id: botellonItem.id },
+            data: {
+              cantidad: newBotellonesQty,
+              precioUnitario: unitPrice,
+              subtotal: newBotellonesQty * unitPrice,
+            },
+          });
+        }
+      }
+    }
+
+    // Calculate accurate montoTotal from all items if multi-product items exist
+    const currentItems = await db.orderItem.findMany({
+      where: { pedidoId: orderId },
+    });
+
+    if (currentItems.length > 0) {
+      const itemsSum = currentItems.reduce((sum, item) => sum + item.subtotal, 0);
+      updateData.montoTotal = itemsSum;
+      updateData.resumenProductos = currentItems.map((i) => `${i.cantidad}x ${i.nombreProducto}`).join(', ');
+    } else if (montoTotal !== undefined && montoTotal >= 0) {
+      updateData.montoTotal = parseFloat(montoTotal);
     }
 
     const updatedOrder = await db.order.update({
