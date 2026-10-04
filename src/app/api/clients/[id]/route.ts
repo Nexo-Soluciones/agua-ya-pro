@@ -1,5 +1,6 @@
 import { db } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession, recordAudit } from '@/lib/auth';
 
 export async function GET(
   req: NextRequest,
@@ -24,6 +25,9 @@ export async function GET(
             montoTotal: true,
             fechaCreacion: true,
           },
+        },
+        _count: {
+          select: { pedidos: true },
         },
       },
     });
@@ -137,6 +141,57 @@ export async function PATCH(
     console.error('Error updating client:', error);
     return NextResponse.json(
       { error: 'Error al actualizar cliente', details: error?.message },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const session = await getServerSession();
+    const clientId = parseInt(params.id, 10);
+    if (isNaN(clientId) || clientId <= 0) {
+      return NextResponse.json({ error: 'ID de cliente inválido' }, { status: 400 });
+    }
+
+    const client = await db.client.findUnique({
+      where: { id: clientId },
+      include: {
+        _count: {
+          select: { pedidos: true },
+        },
+      },
+    });
+
+    if (!client) {
+      return NextResponse.json({ error: 'Cliente no encontrado en la base de datos' }, { status: 404 });
+    }
+
+    const operatorName = session?.nombre || 'Administración';
+
+    // Delete client from DB (cascades to related order items/logs if any)
+    await db.client.delete({
+      where: { id: clientId },
+    });
+
+    await recordAudit({
+      usuarioId: session?.userId || null,
+      rol: session?.rol || 'ADMIN',
+      accion: 'ELIMINAR_CLIENTE',
+      detalles: `Cliente "${client.nombre}" (ID: #${client.id}, Tel: ${client.telefono}) con ${client._count.pedidos} pedido(s) asociado(s) fue eliminado por [${operatorName}]`,
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: `Cliente "${client.nombre}" eliminado exitosamente`,
+    });
+  } catch (error: any) {
+    console.error('Error deleting client:', error);
+    return NextResponse.json(
+      { error: 'Error al eliminar el cliente', details: error?.message },
       { status: 500 }
     );
   }

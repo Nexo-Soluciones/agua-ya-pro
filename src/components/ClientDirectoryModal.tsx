@@ -17,6 +17,7 @@ import {
   Users,
   ArrowLeft,
   RefreshCw,
+  Trash2,
 } from 'lucide-react';
 
 interface ClientDirectoryModalProps {
@@ -35,6 +36,8 @@ export function ClientDirectoryModal({
   const [isLoading, setIsLoading] = useState(false);
   const [selectedClientToEdit, setSelectedClientToEdit] = useState<any | null>(null);
   const [isCreatingNew, setIsCreatingNew] = useState(false);
+  const [clientToDelete, setClientToDelete] = useState<any | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Form fields for editing/creating
   const [nombre, setNombre] = useState('');
@@ -209,6 +212,39 @@ export function ClientDirectoryModal({
       setErrorMsg(err.message);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const confirmDeleteClient = async () => {
+    if (!clientToDelete) return;
+    setIsDeleting(true);
+    setErrorMsg('');
+
+    try {
+      const res = await fetch(`/api/clients/${clientToDelete.id}`, {
+        method: 'DELETE',
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Error al eliminar el cliente');
+      }
+
+      setSuccessToast(`¡Cliente "${clientToDelete.nombre}" eliminado exitosamente!`);
+      if (selectedClientToEdit?.id === clientToDelete.id) {
+        setSelectedClientToEdit(null);
+      }
+      setClientToDelete(null);
+      fetchClients(searchQuery);
+      if (onClientUpdated) onClientUpdated();
+
+      setTimeout(() => {
+        setSuccessToast('');
+      }, 2500);
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Error al eliminar el cliente');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -464,31 +500,53 @@ export function ClientDirectoryModal({
             </div>
 
             {/* Action Buttons */}
-            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={cancelEditOrCreate}
-                className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition"
-              >
-                Cancelar
-              </button>
+            <div className="flex items-center justify-between pt-3 border-t border-slate-100 flex-wrap gap-2">
+              {selectedClientToEdit ? (
+                <button
+                  type="button"
+                  onClick={() => setClientToDelete(selectedClientToEdit)}
+                  className="px-3.5 py-2.5 bg-rose-50 hover:bg-rose-600 text-rose-700 hover:text-white border border-rose-200 hover:border-rose-600 font-bold text-xs rounded-xl transition flex items-center gap-1.5 shadow-xs"
+                  title="Eliminar este cliente definitivamente"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Eliminar Cliente</span>
+                </button>
+              ) : (
+                <div />
+              )}
 
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="px-6 py-2.5 bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs rounded-xl shadow-md transition disabled:opacity-50 flex items-center gap-1.5"
-              >
-                {isSubmitting ? (
-                  <>
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                    <span>Guardando...</span>
-                  </>
-                ) : selectedClientToEdit ? (
-                  'Guardar Cambios'
-                ) : (
-                  'Registrar Cliente'
-                )}
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={cancelEditOrCreate}
+                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition"
+                >
+                  Cancelar
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="px-6 py-2.5 bg-sky-600 hover:bg-sky-700 text-white font-bold text-xs rounded-xl shadow-md transition disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <span>Guardando...</span>
+                    </>
+                  ) : selectedClientToEdit ? (
+                    <>
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>Guardar Cambios</span>
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Registrar Cliente</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </form>
         ) : (
@@ -595,17 +653,103 @@ export function ClientDirectoryModal({
                       )}
                     </div>
 
-                    <button
-                      onClick={() => startEditClient(client)}
-                      className="px-3.5 py-2 bg-sky-50 hover:bg-sky-600 text-sky-700 hover:text-white border border-sky-200 hover:border-sky-600 text-xs font-black rounded-xl transition flex items-center justify-center gap-1.5 shrink-0 self-end sm:self-center shadow-xs"
-                      title="Editar teléfono, dirección y datos de este cliente"
-                    >
-                      <Edit className="w-3.5 h-3.5" />
-                      <span>Editar</span>
-                    </button>
+                    <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-center">
+                      <button
+                        onClick={() => startEditClient(client)}
+                        className="px-3 py-2 bg-sky-50 hover:bg-sky-600 text-sky-700 hover:text-white border border-sky-200 hover:border-sky-600 text-xs font-black rounded-xl transition flex items-center justify-center gap-1.5 shadow-xs"
+                        title="Editar teléfono, dirección y datos de este cliente"
+                      >
+                        <Edit className="w-3.5 h-3.5" />
+                        <span>Editar</span>
+                      </button>
+
+                      <button
+                        onClick={() => setClientToDelete(client)}
+                        className="p-2 bg-slate-50 hover:bg-rose-600 text-slate-400 hover:text-white border border-slate-200 hover:border-rose-600 rounded-xl transition flex items-center justify-center shadow-xs"
+                        title="Eliminar cliente de la base de datos"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
                 ))
               )}
+            </div>
+          </div>
+        )}
+
+        {/* Delete Confirmation Safety Dialog */}
+        {clientToDelete && (
+          <div className="fixed inset-0 z-60 bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 border border-slate-200 animate-in fade-in zoom-in-95 duration-150 space-y-4">
+              <div className="flex items-start gap-3.5">
+                <div className="w-12 h-12 bg-rose-100 rounded-2xl flex items-center justify-center shrink-0 border border-rose-200">
+                  <Trash2 className="w-6 h-6 text-rose-600" />
+                </div>
+                <div>
+                  <h4 className="font-black text-slate-900 text-base">
+                    ¿Eliminar cliente definitivamente?
+                  </h4>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Esta acción eliminará el registro de la base de datos para sincerar el directorio.
+                  </p>
+                </div>
+              </div>
+
+              {/* Client summary pill */}
+              <div className="bg-rose-50/70 border border-rose-200/80 rounded-2xl p-3.5 space-y-1.5 text-xs text-rose-950">
+                <p className="font-black text-sm text-slate-900">
+                  {clientToDelete.nombre} <span className="font-mono text-slate-500 font-normal">#{clientToDelete.id}</span>
+                </p>
+                <div className="flex items-center gap-2 text-slate-700 font-mono font-bold">
+                  <Phone className="w-3.5 h-3.5 text-rose-600" />
+                  <span>{clientToDelete.telefono}</span>
+                </div>
+                <div className="flex items-center gap-2 text-slate-600">
+                  <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  <span>{clientToDelete.direccion} {clientToDelete.barrioSector ? `(${clientToDelete.barrioSector})` : ''}</span>
+                </div>
+              </div>
+
+              {errorMsg && (
+                <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs font-semibold flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
+                  <span>{errorMsg}</span>
+                </div>
+              )}
+
+              <div className="flex items-center justify-end gap-2.5 pt-2">
+                <button
+                  type="button"
+                  disabled={isDeleting}
+                  onClick={() => {
+                    setClientToDelete(null);
+                    setErrorMsg('');
+                  }}
+                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition"
+                >
+                  Cancelar
+                </button>
+
+                <button
+                  type="button"
+                  disabled={isDeleting}
+                  onClick={confirmDeleteClient}
+                  className="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 active:scale-95 text-white font-black text-xs rounded-xl shadow-md shadow-rose-600/25 transition flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  {isDeleting ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      <span>Eliminando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Sí, Eliminar Definitivamente</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         )}
