@@ -39,7 +39,41 @@ export function sendPushNotification(title: string, options?: NotificationOption
   }
 }
 
-// Play notification sound chime using Web Audio API (no external MP3 needed!)
+/**
+ * Sintetizador acústico de gotas y burbujas de agua usando Web Audio API
+ * Genera el sonido físico "plop / bloop" de gotas de agua sin depender de archivos externos
+ */
+function synthesizeWaterDroplet(
+  ctx: AudioContext,
+  startTime: number,
+  startFreq: number = 380,
+  peakFreq: number = 1450,
+  duration: number = 0.13,
+  volume: number = 0.35
+) {
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+
+  osc.type = 'sine';
+
+  // Curva de frecuencia característica del choque hidrodinámico de una gota de agua ("bloop")
+  osc.frequency.setValueAtTime(startFreq, startTime);
+  osc.frequency.exponentialRampToValueAtTime(peakFreq, startTime + duration * 0.65);
+  osc.frequency.exponentialRampToValueAtTime(peakFreq * 0.88, startTime + duration);
+
+  // Envolvente de amplitud rápida y natural
+  gain.gain.setValueAtTime(0.001, startTime);
+  gain.gain.linearRampToValueAtTime(volume, startTime + 0.012);
+  gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+
+  osc.start(startTime);
+  osc.stop(startTime + duration);
+}
+
+// Play notification sound chime using Web Audio API (efectos acuáticos puros)
 export function playNotificationSound(type: 'NEW_ORDER' | 'DELAY_ALERT' = 'NEW_ORDER') {
   if (typeof window === 'undefined') return;
 
@@ -48,35 +82,35 @@ export function playNotificationSound(type: 'NEW_ORDER' | 'DELAY_ALERT' = 'NEW_O
     if (!AudioContext) return;
 
     const ctx = new AudioContext();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-
-    osc.connect(gain);
-    gain.connect(ctx.destination);
+    const now = ctx.currentTime;
 
     if (type === 'NEW_ORDER') {
-      // Pleasant double chime (E5 -> A5)
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(659.25, ctx.currentTime); // E5
-      osc.frequency.setValueAtTime(880, ctx.currentTime + 0.15); // A5
-
-      gain.gain.setValueAtTime(0.3, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
-
-      osc.start(ctx.currentTime);
-      osc.stop(ctx.currentTime + 0.5);
+      // Doble gota de agua cristalina y refrescante (Plop - Plop)
+      synthesizeWaterDroplet(ctx, now, 420, 1400, 0.12, 0.35);
+      synthesizeWaterDroplet(ctx, now + 0.13, 560, 1850, 0.15, 0.4);
     } else {
-      // Urgent triple alarm beep (A5 warning)
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(880, ctx.currentTime);
-      osc.frequency.setValueAtTime(880, ctx.currentTime + 0.2);
-      osc.frequency.setValueAtTime(880, ctx.currentTime + 0.4);
+      // 🚨 Alerta de Retraso Acuática: Cascada de 4 gotas de advertencia rápidas con eco de agua
+      synthesizeWaterDroplet(ctx, now, 480, 1650, 0.11, 0.45);
+      synthesizeWaterDroplet(ctx, now + 0.13, 650, 2050, 0.11, 0.5);
+      synthesizeWaterDroplet(ctx, now + 0.26, 850, 2500, 0.12, 0.55);
+      synthesizeWaterDroplet(ctx, now + 0.40, 580, 1800, 0.18, 0.38);
 
-      gain.gain.setValueAtTime(0.4, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.6);
+      // Resonancia suave de onda de agua de fondo
+      const rippleOsc = ctx.createOscillator();
+      const rippleGain = ctx.createGain();
+      rippleOsc.type = 'sine';
+      rippleOsc.frequency.setValueAtTime(520, now + 0.1);
+      rippleOsc.frequency.exponentialRampToValueAtTime(260, now + 0.6);
 
-      osc.start(ctx.currentTime);
-      osc.stop(ctx.currentTime + 0.6);
+      rippleGain.gain.setValueAtTime(0.001, now);
+      rippleGain.gain.linearRampToValueAtTime(0.12, now + 0.15);
+      rippleGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.6);
+
+      rippleOsc.connect(rippleGain);
+      rippleGain.connect(ctx.destination);
+
+      rippleOsc.start(now);
+      rippleOsc.stop(now + 0.6);
     }
   } catch (e) {
     console.warn('Audio chime error:', e);
