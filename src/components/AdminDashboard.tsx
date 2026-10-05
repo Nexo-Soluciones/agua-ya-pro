@@ -98,7 +98,7 @@ export function AdminDashboard({
   onUpdateOrder,
 }: AdminDashboardProps) {
   const [activeFilter, setActiveFilter] = useState<
-    'TODOS' | 'PENDIENTE' | 'EN_CAMINO' | 'ENTREGADO' | 'PAGOS' | 'RECHAZADOS' | 'MAPA' | 'METRICAS'
+    'TODOS' | 'PENDIENTE' | 'EN_CAMINO' | 'ENTREGADO' | 'PAGOS' | 'PAGOS_VALIDADOS' | 'RECHAZADOS' | 'MAPA' | 'METRICAS'
   >('TODOS');
   const [isClosureModalOpen, setIsClosureModalOpen] = useState(false);
   const [isNewClientModalOpen, setIsNewClientModalOpen] = useState(false);
@@ -113,7 +113,10 @@ export function AdminDashboard({
   const inTransitCount = activeJornadaOrders.filter((o) => o.estadoEntrega === 'EN_CAMINO').length;
   const deliveredCount = activeJornadaOrders.filter((o) => o.estadoEntrega === 'ENTREGADO').length;
   const pendingPaymentsCount = activeJornadaOrders.filter(
-    (o) => (o.metodoPago === 'NEQUI' || o.metodoPago === 'TRANSFERENCIA') && o.estadoPago === 'PENDIENTE'
+    (o) => (o.metodoPago === 'NEQUI' || o.metodoPago === 'TRANSFERENCIA' || o.metodoPago === 'PAGOMOVIL') && o.estadoPago === 'PENDIENTE'
+  ).length;
+  const verifiedPaymentsCount = activeJornadaOrders.filter(
+    (o) => (o.metodoPago === 'NEQUI' || o.metodoPago === 'TRANSFERENCIA' || o.metodoPago === 'PAGOMOVIL') && o.estadoPago === 'VERIFICADO'
   ).length;
 
   // Rejected / Cancelled orders calculation
@@ -154,7 +157,9 @@ export function AdminDashboard({
     if (activeFilter === 'RECHAZADOS')
       return o.estadoEntrega === 'CANCELADO' || o.estadoEntrega === 'RECHAZADO';
     if (activeFilter === 'PAGOS')
-      return (o.metodoPago === 'NEQUI' || o.metodoPago === 'TRANSFERENCIA') && o.estadoPago === 'PENDIENTE';
+      return (o.metodoPago === 'NEQUI' || o.metodoPago === 'TRANSFERENCIA' || o.metodoPago === 'PAGOMOVIL') && o.estadoPago === 'PENDIENTE';
+    if (activeFilter === 'PAGOS_VALIDADOS')
+      return (o.metodoPago === 'NEQUI' || o.metodoPago === 'TRANSFERENCIA' || o.metodoPago === 'PAGOMOVIL') && o.estadoPago === 'VERIFICADO';
     return true;
   });
 
@@ -299,7 +304,14 @@ export function AdminDashboard({
             <CreditCard className="w-5 h-5" />
           </div>
           <div className="mt-3">
-            <span className="text-3xl sm:text-4xl font-black text-purple-700">{pendingPaymentsCount}</span>
+            <div className="flex items-baseline justify-between">
+              <span className="text-3xl sm:text-4xl font-black text-purple-700">{pendingPaymentsCount}</span>
+              {verifiedPaymentsCount > 0 && (
+                <span className="text-[11px] text-emerald-800 bg-emerald-100/90 border border-emerald-300 font-extrabold px-2 py-0.5 rounded-full">
+                  ✓ {verifiedPaymentsCount} val.
+                </span>
+              )}
+            </div>
             <span className="text-xs text-purple-700 block font-medium mt-0.5">Pagos por verificar</span>
           </div>
         </div>
@@ -412,6 +424,18 @@ export function AdminDashboard({
           >
             <CreditCard className="w-4 h-4" />
             <span>Validar Pagos ({pendingPaymentsCount})</span>
+          </button>
+
+          <button
+            onClick={() => setActiveFilter('PAGOS_VALIDADOS')}
+            className={`px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold transition-all duration-200 hover:scale-105 active:scale-95 flex items-center gap-1.5 ${
+              activeFilter === 'PAGOS_VALIDADOS'
+                ? 'bg-emerald-700 text-white shadow-md'
+                : 'glass-mac text-emerald-800 hover:text-emerald-950'
+            }`}
+          >
+            <CheckCircle2 className="w-4 h-4 text-emerald-300" />
+            <span>Pagos Validados ({verifiedPaymentsCount})</span>
           </button>
 
           <button
@@ -716,6 +740,23 @@ export function AdminDashboard({
                         title="Rechazar Pago"
                       >
                         Rechazar
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Verified Payment Status & Revert Option */}
+                  {(order.metodoPago === 'NEQUI' || order.metodoPago === 'TRANSFERENCIA' || order.metodoPago === 'PAGOMOVIL') && order.estadoPago === 'VERIFICADO' && (
+                    <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-xl text-xs">
+                      <span className="text-emerald-800 font-extrabold flex items-center gap-1.5">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <span>Pago Validado</span>
+                      </span>
+                      <button
+                        onClick={() => onUpdateOrder(order.id, { estadoPago: 'PENDIENTE' })}
+                        className="text-[11px] font-bold text-slate-600 hover:text-rose-700 bg-white border border-slate-200 hover:border-rose-300 px-2.5 py-0.5 rounded-lg transition shadow-2xs"
+                        title="Revertir a Pendiente de Validación si fue aprobado por error"
+                      >
+                        ↩ Revertir
                       </button>
                     </div>
                   )}

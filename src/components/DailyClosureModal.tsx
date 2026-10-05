@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Printer, DollarSign, Truck, FileSpreadsheet, Lock, CheckCircle2, AlertTriangle, RefreshCw } from 'lucide-react';
+import { X, Printer, DollarSign, Truck, FileSpreadsheet, Lock, CheckCircle2, AlertTriangle, RefreshCw, Package } from 'lucide-react';
 import { exportStyledExcel } from '@/lib/excelExport';
 
 interface DailyClosureModalProps {
@@ -44,6 +44,45 @@ export function DailyClosureModal({
     .filter((o) => o.metodoPago === 'CREDITO')
     .reduce((sum, o) => sum + o.montoTotal, 0);
   const grandTotal = totalCashCollected + totalTransferCollected + totalCreditCollected;
+
+  // Product itemization aggregation for physical inventory count
+  const productAggregation: Record<
+    string,
+    { nombre: string; categoria: string; cantidad: number; total: number }
+  > = {};
+
+  deliveredOrders.forEach((order) => {
+    if (order.items && order.items.length > 0) {
+      order.items.forEach((item: any) => {
+        const key = item.nombreProducto || 'BOTELLON (20L)';
+        if (!productAggregation[key]) {
+          productAggregation[key] = {
+            nombre: key,
+            categoria: item.producto?.categoria || 'GENERAL',
+            cantidad: 0,
+            total: 0,
+          };
+        }
+        productAggregation[key].cantidad += item.cantidad;
+        productAggregation[key].total += item.subtotal || item.cantidad * item.precioUnitario;
+      });
+    } else {
+      const key = 'BOTELLON (20L)';
+      if (!productAggregation[key]) {
+        productAggregation[key] = {
+          nombre: key,
+          categoria: 'BOTELLONES',
+          cantidad: 0,
+          total: 0,
+        };
+      }
+      productAggregation[key].cantidad += order.cantidadBotellones || 1;
+      productAggregation[key].total += order.montoTotal || 0;
+    }
+  });
+
+  const productList = Object.values(productAggregation).sort((a, b) => b.cantidad - a.cantidad);
+  const totalItemsCount = productList.reduce((sum, p) => sum + p.cantidad, 0);
 
   // Breakdown per driver
   const driverBreakdown = drivers.map((driver) => {
@@ -282,6 +321,52 @@ export function DailyClosureModal({
               <span className="text-lg font-black text-white print:text-emerald-700">
                 ${(totalCashCollected + totalTransferCollected).toLocaleString('es-CO')}
               </span>
+            </div>
+          </div>
+
+          {/* Conteo y Consolidado Físico por Producto */}
+          <div className="space-y-3 avoid-page-break">
+            <h3 className="font-extrabold text-slate-900 text-sm flex items-center gap-2 print:text-black">
+              <Package className="w-4 h-4 text-sky-600 print:hidden" />
+              <span>Conteo Físico y Consolidado de Productos Vendidos</span>
+            </h3>
+
+            <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-xs print:border-slate-300">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-100 text-slate-700 font-black uppercase text-[11px] print:bg-slate-200">
+                  <tr>
+                    <th className="py-3 px-4">Producto / Presentación</th>
+                    <th className="py-3 px-3 text-center">Categoría</th>
+                    <th className="py-3 px-3 text-center">Unidades Entregadas</th>
+                    <th className="py-3 px-4 text-right">Total Facturado ($)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 print:divide-slate-200">
+                  {productList.map((item, idx) => (
+                    <tr key={idx} className="hover:bg-slate-50 print:bg-white">
+                      <td className="py-3 px-4 font-black text-slate-900">
+                        {item.nombre}
+                      </td>
+                      <td className="py-3 px-3 text-center font-bold text-slate-500">
+                        {item.categoria}
+                      </td>
+                      <td className="py-3 px-3 text-center font-black text-sky-700 text-sm">
+                        {item.cantidad} <span className="text-xs font-semibold text-slate-400">unid.</span>
+                      </td>
+                      <td className="py-3 px-4 text-right font-bold text-emerald-700">
+                        ${item.total.toLocaleString('es-CO')}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot className="bg-slate-900 text-white font-black print:bg-slate-100 print:text-slate-900">
+                  <tr>
+                    <td colSpan={2} className="py-3 px-4">TOTAL DE PRODUCTOS DESPACHADOS</td>
+                    <td className="py-3 px-3 text-center text-sky-300 print:text-slate-900 text-sm">{totalItemsCount} unid.</td>
+                    <td className="py-3 px-4 text-right text-emerald-400 print:text-slate-900">${grandTotal.toLocaleString('es-CO')}</td>
+                  </tr>
+                </tfoot>
+              </table>
             </div>
           </div>
 
