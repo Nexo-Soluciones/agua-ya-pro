@@ -22,6 +22,12 @@ export default function Home() {
 
   const prevOrdersCountRef = useRef<number | null>(null);
   const isFetchingRef = useRef(false);
+  const currentRoleRef = useRef(currentRole);
+  const lastAlertedMinuteMapRef = useRef<Record<number, number>>({});
+
+  useEffect(() => {
+    currentRoleRef.current = currentRole;
+  }, [currentRole]);
 
   // Check initial authentication state from localStorage
   useEffect(() => {
@@ -83,20 +89,41 @@ export default function Home() {
         prevOrdersCountRef.current = ordersData.length;
 
         // Check for delayed orders (> 90 minutes / 1h 30m in EN_CAMINO)
+        // Recordatorio acústico y notificación push EXCLUSIVAMENTE para repartidores sobre sus pedidos asignados.
+        // Los usuarios administrativos quedan 100% libres del sonido de alarma.
         const now = new Date().getTime();
+        const role = currentRoleRef.current;
+        const isDriver = role !== 'ADMIN' && role !== 'UNAUTHENTICATED';
+        const activeDriverId = isDriver ? parseInt(role, 10) : null;
+
         ordersData.forEach((order: any) => {
+          if (order.estadoEntrega !== 'EN_CAMINO' && lastAlertedMinuteMapRef.current[order.id]) {
+            delete lastAlertedMinuteMapRef.current[order.id];
+          }
+
           if (order.estadoEntrega === 'EN_CAMINO' && order.updatedAt) {
             const updatedTime = new Date(order.updatedAt).getTime();
             const minutesInRoute = Math.floor((now - updatedTime) / 60000);
 
-            if (minutesInRoute >= 90 && minutesInRoute % 15 === 0) {
-              playNotificationSound('DELAY_ALERT');
-              sendPushNotification(
-                `⚠️ ¡Alerta de Demora! Pedido #${order.numeroPedido}`,
-                {
-                  body: `Lleva ${minutesInRoute} minutos en ruta con ${order.repartidor ? order.repartidor.nombre : 'repartidor'}.`,
-                }
-              );
+            // Recordatorio exclusivo para el repartidor asignado a este pedido
+            if (
+              isDriver &&
+              activeDriverId &&
+              order.repartidorId === activeDriverId &&
+              minutesInRoute >= 90 &&
+              minutesInRoute % 15 === 0
+            ) {
+              const lastAlerted = lastAlertedMinuteMapRef.current[order.id];
+              if (lastAlerted !== minutesInRoute) {
+                lastAlertedMinuteMapRef.current[order.id] = minutesInRoute;
+                playNotificationSound('DELAY_ALERT');
+                sendPushNotification(
+                  `🔔 Recordatorio de Entrega: Pedido #${order.numeroPedido}`,
+                  {
+                    body: `Lleva ${minutesInRoute} minutos en ruta. Recuerda entregar o reportar novedades.`,
+                  }
+                );
+              }
             }
           }
         });

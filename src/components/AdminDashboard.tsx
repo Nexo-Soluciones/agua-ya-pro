@@ -24,7 +24,6 @@ import {
   BarChart3,
   History,
   RotateCcw,
-  Volume2,
   Moon,
   Sun,
   FileText,
@@ -35,7 +34,6 @@ import { ClientDirectoryModal } from './ClientDirectoryModal';
 import { ManageDriversModal } from './ManageDriversModal';
 import { AuditLogsModal } from './AuditLogsModal';
 import { HeroVideoBanner } from './HeroVideoBanner';
-import { playNotificationSound } from '@/lib/notifications';
 
 // Lazy loading diferido para mapas y gráficas con skeletons elegantes
 const LiveDriverMap = dynamic(
@@ -287,16 +285,13 @@ export function AdminDashboard({
           <h2 className="text-2xl sm:text-3xl font-black text-slate-900 flex flex-wrap items-center gap-2.5">
             <span>Tablero de Despacho Central</span>
             {delayedOrdersCount > 0 && (
-              <button
-                type="button"
-                onClick={() => playNotificationSound('DELAY_ALERT')}
-                className="text-xs bg-rose-100 hover:bg-rose-200 text-rose-800 border border-rose-300 px-3 py-1 rounded-full font-black animate-pulse flex items-center gap-1.5 transition cursor-pointer active:scale-95 shadow-xs"
-                title="Tono de alarma acuática de demora (Hacer clic para escuchar)"
+              <span
+                className="text-xs bg-rose-100 text-rose-800 border border-rose-300 px-3 py-1 rounded-full font-black flex items-center gap-1.5 shadow-xs"
+                title="Pedidos con más de 90 minutos en ruta (Monitoreo visual administrativo)"
               >
                 <AlertCircle className="w-4 h-4 text-rose-600" />
                 <span>{delayedOrdersCount} Retrasado(s)</span>
-                <Volume2 className="w-3.5 h-3.5 text-rose-600 ml-0.5" />
-              </button>
+              </span>
             )}
           </h2>
           <p className="text-sm sm:text-base text-slate-500 font-medium mt-1">
