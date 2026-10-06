@@ -16,6 +16,9 @@ export interface ReportData {
     credit: number;
     total: number;
   }>;
+  scheduledTomorrowOrders?: any[];
+  scheduledTomorrowCount?: number;
+  scheduledTomorrowBottles?: number;
 }
 
 /**
@@ -32,6 +35,9 @@ export function exportStyledExcel(data: ReportData) {
     totalCreditCollected,
     grandTotal,
     driverBreakdown,
+    scheduledTomorrowOrders = [],
+    scheduledTomorrowCount = 0,
+    scheduledTomorrowBottles = 0,
   } = data;
 
   // Product itemization aggregation for exact inventory & item counting
@@ -296,6 +302,45 @@ export function exportStyledExcel(data: ReportData) {
             }
           )
           .join('')}
+        ${
+          scheduledTomorrowOrders && scheduledTomorrowOrders.length > 0
+            ? `
+        <tr><td colspan="13" height="25"></td></tr>
+        <!-- Tabla 4: Pedidos en Cola para Mañana -->
+        <tr>
+          <td colspan="13" class="section-header" style="background-color: #4338ca;">🌙 4. PEDIDOS EN COLA / REPROGRAMADOS PARA MAÑANA (8:00 AM) — ${scheduledTomorrowCount} PEDIDOS (${scheduledTomorrowBottles} BOTELLONES)</td>
+        </tr>
+        <tr>
+          <td class="th-main" style="background-color: #312e81;">Pedido #</td>
+          <td class="th-main" style="background-color: #312e81;">Registrado Por</td>
+          <td colspan="3" class="th-main" style="background-color: #312e81;">Dirección Exacta</td>
+          <td colspan="2" class="th-main" style="background-color: #312e81;">Cliente</td>
+          <td class="th-main" style="background-color: #312e81;">Teléfono</td>
+          <td colspan="3" class="th-main" style="background-color: #312e81;">Productos a Entregar</td>
+          <td colspan="2" class="th-main" style="background-color: #312e81;">Monto Pendiente ($)</td>
+        </tr>
+        ${scheduledTomorrowOrders
+          .map(
+            (o, idx) => `
+          <tr class="${idx % 2 === 1 ? 'tr-zebra' : ''}">
+            <td class="td-cell td-center td-bold">#${o.numeroPedido || o.id}</td>
+            <td class="td-cell td-bold" style="color: #475569;">👤 ${o.creadoPor || 'Oficina'}</td>
+            <td colspan="3" class="td-cell td-address">📍 ${o.cliente?.direccion || 'N/A'}</td>
+            <td colspan="2" class="td-cell td-bold">${o.cliente?.nombre || 'Cliente General'}</td>
+            <td class="td-cell">${o.cliente?.telefono || '-'}</td>
+            <td colspan="3" class="td-cell" style="color: #4338ca; font-size: 8.5pt;">${
+              o.items && o.items.length > 0
+                ? o.items.map((i: any) => `${i.cantidad}x ${i.nombreProducto}`).join(', ')
+                : `${o.cantidadBotellones}x BOTELLON (20L)`
+            }</td>
+            <td colspan="2" class="td-cell td-right td-bold" style="color: #4338ca;">$${o.montoTotal?.toLocaleString('es-CO')}</td>
+          </tr>
+        `
+          )
+          .join('')}
+        `
+            : ''
+        }
         
         <tr><td colspan="13" height="35"></td></tr>
 

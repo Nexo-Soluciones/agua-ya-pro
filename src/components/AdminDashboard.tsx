@@ -25,6 +25,8 @@ import {
   History,
   RotateCcw,
   Volume2,
+  Moon,
+  Sun,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { DailyClosureModal } from './DailyClosureModal';
@@ -100,7 +102,7 @@ export function AdminDashboard({
   onUpdateOrder,
 }: AdminDashboardProps) {
   const [activeFilter, setActiveFilter] = useState<
-    'TODOS' | 'PENDIENTE' | 'EN_CAMINO' | 'ENTREGADO' | 'PAGOS' | 'PAGOS_VALIDADOS' | 'RECHAZADOS' | 'MAPA' | 'METRICAS'
+    'TODOS' | 'PENDIENTE' | 'EN_CAMINO' | 'ENTREGADO' | 'PAGOS' | 'PAGOS_VALIDADOS' | 'PROGRAMADO_MANANA' | 'RECHAZADOS' | 'MAPA' | 'METRICAS'
   >('TODOS');
   const [isClosureModalOpen, setIsClosureModalOpen] = useState(false);
   const [isNewClientModalOpen, setIsNewClientModalOpen] = useState(false);
@@ -114,6 +116,11 @@ export function AdminDashboard({
   const pendingCount = activeJornadaOrders.filter((o) => o.estadoEntrega === 'PENDIENTE').length;
   const inTransitCount = activeJornadaOrders.filter((o) => o.estadoEntrega === 'EN_CAMINO').length;
   const deliveredCount = activeJornadaOrders.filter((o) => o.estadoEntrega === 'ENTREGADO').length;
+  const scheduledTomorrowCount = activeJornadaOrders.filter((o) => o.estadoEntrega === 'PROGRAMADO_MANANA').length;
+  const scheduledTomorrowBottles = activeJornadaOrders
+    .filter((o) => o.estadoEntrega === 'PROGRAMADO_MANANA')
+    .reduce((sum, o) => sum + (o.cantidadBotellones || 0), 0);
+
   const pendingPaymentsCount = activeJornadaOrders.filter(
     (o) => (o.metodoPago === 'NEQUI' || o.metodoPago === 'TRANSFERENCIA' || o.metodoPago === 'PAGOMOVIL') && o.estadoPago === 'PENDIENTE'
   ).length;
@@ -128,7 +135,7 @@ export function AdminDashboard({
   const rejectedCount = rejectedOrders.length;
   const rejectedBottles = rejectedOrders.reduce((sum, o) => sum + (o.cantidadBotellones || 0), 0);
 
-  // Delayed orders calculation (>90 min in route)
+  // Delayed orders calculation (>90 min in route) - ONLY for orders actually in route (EN_CAMINO)
   const now = new Date().getTime();
   const delayedOrdersCount = activeJornadaOrders.filter((o) => {
     if (o.estadoEntrega === 'EN_CAMINO' && o.updatedAt) {
@@ -156,6 +163,7 @@ export function AdminDashboard({
     if (activeFilter === 'PENDIENTE') return o.estadoEntrega === 'PENDIENTE';
     if (activeFilter === 'EN_CAMINO') return o.estadoEntrega === 'EN_CAMINO';
     if (activeFilter === 'ENTREGADO') return o.estadoEntrega === 'ENTREGADO';
+    if (activeFilter === 'PROGRAMADO_MANANA') return o.estadoEntrega === 'PROGRAMADO_MANANA';
     if (activeFilter === 'RECHAZADOS')
       return o.estadoEntrega === 'CANCELADO' || o.estadoEntrega === 'RECHAZADO';
     if (activeFilter === 'PAGOS')
@@ -447,6 +455,23 @@ export function AdminDashboard({
           </button>
 
           <button
+            onClick={() => setActiveFilter('PROGRAMADO_MANANA')}
+            className={`px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold transition-all duration-200 hover:scale-105 active:scale-95 flex items-center gap-1.5 ${
+              activeFilter === 'PROGRAMADO_MANANA'
+                ? 'bg-indigo-700 text-white shadow-md'
+                : 'glass-mac text-indigo-800 hover:text-indigo-950'
+            }`}
+          >
+            <Moon className="w-4 h-4 text-indigo-300" />
+            <span>Para Mañana ({scheduledTomorrowCount})</span>
+            {scheduledTomorrowBottles > 0 && (
+              <span className="text-[10px] bg-indigo-200 text-indigo-950 px-1.5 py-0.5 rounded-full font-black">
+                {scheduledTomorrowBottles} bot.
+              </span>
+            )}
+          </button>
+
+          <button
             onClick={() => setActiveFilter('RECHAZADOS')}
             className={`px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold transition-all duration-200 hover:scale-105 active:scale-95 flex items-center gap-1.5 ${
               activeFilter === 'RECHAZADOS'
@@ -552,8 +577,10 @@ export function AdminDashboard({
                       )}
 
                       <span
-                        className={`text-xs px-2.5 py-1 rounded-full font-bold uppercase ${
-                          order.estadoEntrega === 'PENDIENTE'
+                        className={`text-xs px-2.5 py-1 rounded-full font-bold uppercase flex items-center gap-1 ${
+                          order.estadoEntrega === 'PROGRAMADO_MANANA'
+                            ? 'bg-indigo-100 text-indigo-900 border border-indigo-300 font-extrabold'
+                            : order.estadoEntrega === 'PENDIENTE'
                             ? 'bg-amber-100 text-amber-800'
                             : order.estadoEntrega === 'EN_CAMINO'
                             ? 'bg-blue-100 text-blue-800'
@@ -562,7 +589,12 @@ export function AdminDashboard({
                             : 'bg-rose-100 text-rose-800 border border-rose-200'
                         }`}
                       >
-                        {order.estadoEntrega === 'PENDIENTE'
+                        {order.estadoEntrega === 'PROGRAMADO_MANANA' ? (
+                          <>
+                            <Moon className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                            <span>Para Mañana (8:00 AM)</span>
+                          </>
+                        ) : order.estadoEntrega === 'PENDIENTE'
                           ? 'Pendiente'
                           : order.estadoEntrega === 'EN_CAMINO'
                           ? 'En Ruta'
@@ -769,9 +801,22 @@ export function AdminDashboard({
                     </div>
                   )}
 
-                  {/* Change Order Delivery Status or Reassign Rejected Order */}
-                  <div className="flex items-center gap-1 pt-1">
-                    {isRejected ? (
+                  {/* Change Order Delivery Status, Reassign Rejected Order, or Schedule for Tomorrow */}
+                  <div className="space-y-1.5 pt-1">
+                    {order.estadoEntrega === 'PROGRAMADO_MANANA' ? (
+                      <button
+                        onClick={() =>
+                          onUpdateOrder(order.id, {
+                            estadoEntrega: 'PENDIENTE',
+                            repartidorId: null,
+                          })
+                        }
+                        className="w-full py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white rounded-xl text-xs font-black transition flex items-center justify-center gap-1.5 shadow-md shadow-amber-500/25 active:scale-95"
+                      >
+                        <Sun className="w-4 h-4" />
+                        <span>☀️ Activar para Hoy / Despachar</span>
+                      </button>
+                    ) : isRejected ? (
                       <button
                         onClick={() =>
                           onUpdateOrder(order.id, {
@@ -785,17 +830,36 @@ export function AdminDashboard({
                         <span>Reintentar / Devolver a Pendientes</span>
                       </button>
                     ) : order.estadoEntrega !== 'ENTREGADO' ? (
-                      <button
-                        onClick={() =>
-                          onUpdateOrder(order.id, {
-                            estadoEntrega: 'ENTREGADO',
-                            estadoPago: order.metodoPago === 'EFECTIVO' ? 'VERIFICADO' : order.estadoPago,
-                          })
-                        }
-                        className="w-full py-1.5 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-xs font-bold transition flex items-center justify-center gap-1"
-                      >
-                        <CheckCircle2 className="w-3.5 h-3.5" /> Marcar Entregado
-                      </button>
+                      <>
+                        <button
+                          onClick={() =>
+                            onUpdateOrder(order.id, {
+                              estadoEntrega: 'ENTREGADO',
+                              estadoPago: order.metodoPago === 'EFECTIVO' ? 'VERIFICADO' : order.estadoPago,
+                            })
+                          }
+                          className="w-full py-1.5 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-xs font-bold transition flex items-center justify-center gap-1"
+                        >
+                          <CheckCircle2 className="w-3.5 h-3.5" /> Marcar Entregado
+                        </button>
+
+                        <button
+                          onClick={() =>
+                            onUpdateOrder(order.id, {
+                              estadoEntrega: 'PROGRAMADO_MANANA',
+                              repartidorId: null,
+                              notasEntrega: order.notasEntrega
+                                ? `${order.notasEntrega} (Programado para mañana 8:00 AM)`
+                                : 'Programado para entrega mañana a las 8:00 AM',
+                            })
+                          }
+                          className="w-full py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-900 border border-indigo-200 hover:border-indigo-300 rounded-xl text-xs font-extrabold transition flex items-center justify-center gap-1.5"
+                          title="Silenciar alarmas y dejar listo en cola para entrega mañana a partir de las 8:00 AM"
+                        >
+                          <Moon className="w-3.5 h-3.5 text-indigo-600" />
+                          <span>🌙 Pasar para Mañana (8:00 AM)</span>
+                        </button>
+                      </>
                     ) : null}
                   </div>
                 </div>

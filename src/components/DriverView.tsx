@@ -28,6 +28,7 @@ interface DriverViewProps {
     orderId: number,
     data: {
       estadoEntrega?: string;
+      repartidorId?: number | null;
       metodoPago?: string;
       estadoPago?: string;
       comprobanteRef?: string;
@@ -195,6 +196,7 @@ export function DriverView({ driver, orders, onUpdateOrder }: DriverViewProps) {
     if (!selectedOrderForRejection) return;
 
     const reasonLabels: Record<string, string> = {
+      POSTERGADO_MANANA: 'Cliente solicitó entrega mañana a primera hora (8:00 AM)',
       CLIENTE_NO_ESTA: 'Cliente no se encuentra / No atiende',
       DIRECCION_ERRADA: 'Dirección errada / No existe',
       CLIENTE_CANCELO: 'Cliente canceló el pedido',
@@ -210,12 +212,22 @@ export function DriverView({ driver, orders, onUpdateOrder }: DriverViewProps) {
             customRejectionDetail.trim() ? ` (${customRejectionDetail.trim()})` : ''
           }`;
 
+    const isPostponed = rejectionReason === 'POSTERGADO_MANANA';
+
     setIsSubmitting(true);
     try {
-      await onUpdateOrder(selectedOrderForRejection.id, {
-        estadoEntrega: 'CANCELADO',
-        notasEntrega: `❌ Rechazado en ruta: ${finalReason}`,
-      });
+      if (isPostponed) {
+        await onUpdateOrder(selectedOrderForRejection.id, {
+          estadoEntrega: 'PROGRAMADO_MANANA',
+          repartidorId: null,
+          notasEntrega: `🌙 Reprogramado por repartidor: ${reasonLabels.POSTERGADO_MANANA}`,
+        });
+      } else {
+        await onUpdateOrder(selectedOrderForRejection.id, {
+          estadoEntrega: 'CANCELADO',
+          notasEntrega: `❌ Rechazado en ruta: ${finalReason}`,
+        });
+      }
       setSelectedOrderForRejection(null);
     } catch (err) {
       console.error(err);
@@ -895,6 +907,7 @@ export function DriverView({ driver, orders, onUpdateOrder }: DriverViewProps) {
                 </label>
                 <div className="space-y-2 text-xs font-bold">
                   {[
+                    { id: 'POSTERGADO_MANANA', label: '🌙 Cliente pidió entrega mañana a primera hora (8:00 AM)' },
                     { id: 'CLIENTE_NO_ESTA', label: '🏠 Cliente no se encuentra / No abre' },
                     { id: 'DIRECCION_ERRADA', label: '📍 Dirección errada / No existe' },
                     { id: 'CLIENTE_CANCELO', label: '🚫 Cliente canceló el pedido' },

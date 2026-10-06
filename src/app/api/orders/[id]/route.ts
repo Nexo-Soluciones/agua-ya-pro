@@ -42,6 +42,10 @@ export async function PATCH(
       if (estadoEntrega === 'ENTREGADO') {
         updateData.fechaEntrega = new Date();
       }
+      if (estadoEntrega === 'PROGRAMADO_MANANA') {
+        updateData.repartidorId = null;
+        updateData.updatedAt = new Date();
+      }
     }
 
     if (precioUnitario !== undefined && precioUnitario >= 0) {

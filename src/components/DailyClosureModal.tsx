@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Printer, DollarSign, Truck, FileSpreadsheet, Lock, CheckCircle2, AlertTriangle, RefreshCw, Package } from 'lucide-react';
+import { X, Printer, DollarSign, Truck, FileSpreadsheet, Lock, CheckCircle2, AlertTriangle, RefreshCw, Package, Moon } from 'lucide-react';
 import { exportStyledExcel } from '@/lib/excelExport';
 
 interface DailyClosureModalProps {
@@ -31,8 +31,11 @@ export function DailyClosureModal({
   });
 
   const deliveredOrders = orders.filter((o) => o.estadoEntrega === 'ENTREGADO');
+  const scheduledTomorrowOrders = orders.filter((o) => o.estadoEntrega === 'PROGRAMADO_MANANA');
+  const scheduledTomorrowCount = scheduledTomorrowOrders.length;
+  const scheduledTomorrowBottles = scheduledTomorrowOrders.reduce((sum, o) => sum + (o.cantidadBotellones || 0), 0);
 
-  // Overall totals
+  // Overall totals (Strictly based on delivered orders)
   const totalBottles = deliveredOrders.reduce((sum, o) => sum + o.cantidadBotellones, 0);
   const totalCashCollected = deliveredOrders
     .filter((o) => o.metodoPago === 'EFECTIVO')
@@ -126,6 +129,9 @@ export function DailyClosureModal({
       totalCreditCollected,
       grandTotal,
       driverBreakdown,
+      scheduledTomorrowOrders,
+      scheduledTomorrowCount,
+      scheduledTomorrowBottles,
     });
   };
 
@@ -271,6 +277,28 @@ export function DailyClosureModal({
 
         {/* Content Body */}
         <div className="p-6 space-y-6 max-h-[80vh] overflow-y-auto print:max-h-none print:overflow-visible print:p-0">
+          {/* Informative Banner: Pedidos Programados para Mañana */}
+          {scheduledTomorrowCount > 0 && (
+            <div className="bg-indigo-50 border border-indigo-200 text-indigo-950 p-4 rounded-2xl flex items-center justify-between avoid-page-break print:border-slate-300">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-indigo-100 text-indigo-800 rounded-xl shrink-0 print:hidden">
+                  <Moon className="w-5 h-5 text-indigo-600" />
+                </div>
+                <div>
+                  <h4 className="font-black text-sm text-indigo-950">
+                    🌙 {scheduledTomorrowCount} Pedido(s) en Cola para Mañana (8:00 AM)
+                  </h4>
+                  <p className="text-xs text-indigo-700 mt-0.5 font-medium">
+                    Total de <strong>{scheduledTomorrowBottles} botellones</strong> reprogramados. No se suman a la caja de hoy y se activarán automáticamente para la siguiente jornada.
+                  </p>
+                </div>
+              </div>
+              <span className="text-xs font-black bg-indigo-600 text-white px-3 py-1.5 rounded-xl shrink-0 print:bg-slate-200 print:text-black">
+                {scheduledTomorrowCount} en Cola
+              </span>
+            </div>
+          )}
+
           {/* Executive Summary Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 avoid-page-break">
             <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 print:bg-white print:border-slate-300">
