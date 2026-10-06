@@ -90,7 +90,31 @@ export function DailyClosureModal({
   // Breakdown per driver
   const driverBreakdown = drivers.map((driver) => {
     const driverDelivered = deliveredOrders.filter((o) => o.repartidorId === driver.id);
-    const bottles = driverDelivered.reduce((sum, o) => sum + o.cantidadBotellones, 0);
+    const bottles = driverDelivered.reduce((sum, o) => sum + (o.cantidadBotellones || 0), 0);
+    
+    // Aggregation of all product units for this driver
+    const driverProducts: Record<string, number> = {};
+    let driverTotalItems = 0;
+
+    driverDelivered.forEach((order) => {
+      if (order.items && order.items.length > 0) {
+        order.items.forEach((item: any) => {
+          const name = item.nombreProducto || 'BOTELLON (20L)';
+          driverProducts[name] = (driverProducts[name] || 0) + item.cantidad;
+          driverTotalItems += item.cantidad;
+        });
+      } else {
+        const name = 'BOTELLON (20L)';
+        const qty = order.cantidadBotellones || 1;
+        driverProducts[name] = (driverProducts[name] || 0) + qty;
+        driverTotalItems += qty;
+      }
+    });
+
+    const itemsSummary = Object.entries(driverProducts)
+      .map(([name, qty]) => `${qty}x ${name}`)
+      .join(', ');
+
     const cash = driverDelivered
       .filter((o) => o.metodoPago === 'EFECTIVO')
       .reduce((sum, o) => sum + o.montoTotal, 0);
@@ -105,6 +129,8 @@ export function DailyClosureModal({
       driver,
       deliveredCount: driverDelivered.length,
       bottles,
+      totalItems: driverTotalItems || bottles,
+      itemsSummary: itemsSummary || (bottles > 0 ? `${bottles}x BOTELLON (20L)` : '-'),
       cash,
       transfer,
       credit,
@@ -410,7 +436,7 @@ export function DailyClosureModal({
                 <thead className="bg-slate-100 text-slate-700 font-black uppercase text-[11px] print:bg-slate-200">
                   <tr>
                     <th className="py-3 px-4">Repartidor</th>
-                    <th className="py-3 px-3 text-center">Botellones</th>
+                    <th className="py-3 px-3 text-center">Productos / Ítems</th>
                     <th className="py-3 px-3 text-right">Efectivo ($)</th>
                     <th className="py-3 px-3 text-right">A Crédito ($)</th>
                     <th className="py-3 px-3 text-right">Transferencia ($)</th>
@@ -426,8 +452,15 @@ export function DailyClosureModal({
                           {row.deliveredCount} pedidos entregados
                         </span>
                       </td>
-                      <td className="py-3.5 px-3 text-center font-black text-sky-700">
-                        {row.bottles} unid.
+                      <td className="py-3.5 px-3 text-center">
+                        <span className="font-black text-sky-700 text-xs block">
+                          {row.totalItems} unid.
+                        </span>
+                        {row.itemsSummary && (
+                          <span className="block text-[10px] text-slate-500 font-medium mt-0.5 max-w-[220px] mx-auto print:text-slate-600">
+                            {row.itemsSummary}
+                          </span>
+                        )}
                       </td>
                       <td className="py-3.5 px-3 text-right font-bold text-emerald-700">
                         ${row.cash.toLocaleString('es-CO')}
@@ -447,7 +480,10 @@ export function DailyClosureModal({
                 <tfoot className="bg-slate-900 text-white font-black print:bg-slate-100 print:text-slate-900">
                   <tr>
                     <td className="py-3 px-4">TOTALES</td>
-                    <td className="py-3 px-3 text-center text-sky-300 print:text-slate-900">{totalBottles} unid.</td>
+                    <td className="py-3 px-3 text-center text-sky-300 print:text-slate-900">
+                      <span className="font-black block">{totalItemsCount} unid.</span>
+                      <span className="text-[10px] font-normal opacity-90 block">({totalBottles} botellones)</span>
+                    </td>
                     <td className="py-3 px-3 text-right text-emerald-400 print:text-slate-900">${totalCashCollected.toLocaleString('es-CO')}</td>
                     <td className="py-3 px-3 text-right text-amber-400 print:text-slate-900">${totalCreditCollected.toLocaleString('es-CO')}</td>
                     <td className="py-3 px-3 text-right text-purple-300 print:text-slate-900">${totalTransferCollected.toLocaleString('es-CO')}</td>

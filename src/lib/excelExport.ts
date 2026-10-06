@@ -11,6 +11,8 @@ export interface ReportData {
     driver: any;
     deliveredCount: number;
     bottles: number;
+    totalItems?: number;
+    itemsSummary?: string;
     cash: number;
     transfer: number;
     credit: number;
@@ -178,7 +180,7 @@ export function exportStyledExcel(data: ReportData) {
         <tr>
           <td colspan="3" class="th-main">Repartidor</td>
           <td class="th-main">Entregas</td>
-          <td class="th-main">Botellones</td>
+          <td class="th-main">Productos / Ítems</td>
           <td colspan="2" class="th-main">Efectivo Físico</td>
           <td colspan="2" class="th-main">Nequi / Bancos</td>
           <td colspan="2" class="th-main">A Crédito</td>
@@ -190,7 +192,10 @@ export function exportStyledExcel(data: ReportData) {
           <tr class="${index % 2 === 1 ? 'tr-zebra' : ''}">
             <td colspan="3" class="td-cell td-bold">🚚 ${item.driver.nombre}</td>
             <td class="td-cell td-center td-bold">${item.deliveredCount}</td>
-            <td class="td-cell td-center td-bold" style="color: #0284c7;">${item.bottles}</td>
+            <td class="td-cell td-center td-bold" style="color: #0284c7;">
+              ${item.totalItems || item.bottles} unid.<br/>
+              <span style="font-size: 8pt; color: #475569; font-weight: normal;">${item.itemsSummary || (item.bottles > 0 ? item.bottles + 'x BOTELLON (20L)' : '-')}</span>
+            </td>
             <td colspan="2" class="td-cell td-right td-bold" style="color: #059669;">$${item.cash.toLocaleString('es-CO')}</td>
             <td colspan="2" class="td-cell td-right td-bold" style="color: #7c3aed;">$${item.transfer.toLocaleString('es-CO')}</td>
             <td colspan="2" class="td-cell td-right td-bold" style="color: #d97706;">$${item.credit.toLocaleString('es-CO')}</td>
@@ -202,7 +207,7 @@ export function exportStyledExcel(data: ReportData) {
         <tr>
           <td colspan="3" class="td-cell tfoot-total">TOTALES GENERALES</td>
           <td class="td-cell tfoot-total td-center">${deliveredOrders.length}</td>
-          <td class="td-cell tfoot-total td-center" style="color: #38bdf8;">${totalBottles}</td>
+          <td class="td-cell tfoot-total td-center" style="color: #38bdf8;">${totalItemsCount} Ítems (${totalBottles} Bot.)</td>
           <td colspan="2" class="td-cell tfoot-total td-right" style="color: #4ade80;">$${totalCashCollected.toLocaleString('es-CO')}</td>
           <td colspan="2" class="td-cell tfoot-total td-right" style="color: #c084fc;">$${totalTransferCollected.toLocaleString('es-CO')}</td>
           <td colspan="2" class="td-cell tfoot-total td-right" style="color: #fde047;">$${totalCreditCollected.toLocaleString('es-CO')}</td>
