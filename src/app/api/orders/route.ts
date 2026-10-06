@@ -239,9 +239,7 @@ export async function POST(req: NextRequest) {
       });
 
       summaryText = orderItemsData.map((i) => `${i.cantidad}x ${i.nombreProducto}`).join(', ');
-      if (totalBotellonesQty === 0) {
-        totalBotellonesQty = orderItemsData.reduce((sum, i) => sum + i.cantidad, 0);
-      }
+      // totalBotellonesQty se mantiene estrictamente como la suma de botellones (0 si solo son garrafas/bandejas)
     } else {
       // Fallback
       const qty = Math.max(1, parseInt(String(cantidadBotellones || '1'), 10) || 1);

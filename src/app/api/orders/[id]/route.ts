@@ -81,7 +81,7 @@ export async function PATCH(
     }
 
     // Synchronize Botellon OrderItem if cantidadBotellones changed
-    if (cantidadBotellones !== undefined && parseInt(cantidadBotellones, 10) > 0) {
+    if (cantidadBotellones !== undefined && parseInt(cantidadBotellones, 10) >= 0) {
       const newBotellonesQty = parseInt(cantidadBotellones, 10);
       updateData.cantidadBotellones = newBotellonesQty;
 
@@ -93,15 +93,21 @@ export async function PATCH(
         );
 
         if (botellonItem) {
-          const unitPrice = updateData.precioUnitario !== undefined ? updateData.precioUnitario : botellonItem.precioUnitario;
-          await db.orderItem.update({
-            where: { id: botellonItem.id },
-            data: {
-              cantidad: newBotellonesQty,
-              precioUnitario: unitPrice,
-              subtotal: newBotellonesQty * unitPrice,
-            },
-          });
+          if (newBotellonesQty === 0) {
+            await db.orderItem.delete({
+              where: { id: botellonItem.id },
+            });
+          } else {
+            const unitPrice = updateData.precioUnitario !== undefined ? updateData.precioUnitario : botellonItem.precioUnitario;
+            await db.orderItem.update({
+              where: { id: botellonItem.id },
+              data: {
+                cantidad: newBotellonesQty,
+                precioUnitario: unitPrice,
+                subtotal: newBotellonesQty * unitPrice,
+              },
+            });
+          }
         }
       }
     }
