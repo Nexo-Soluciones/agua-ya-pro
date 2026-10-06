@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Droplet,
   Plus,
@@ -27,6 +27,7 @@ import {
   Volume2,
   Moon,
   Sun,
+  FileText,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { DailyClosureModal } from './DailyClosureModal';
@@ -90,8 +91,106 @@ interface AdminDashboardProps {
       cantidadBotellones?: number;
       montoTotal?: number;
       notasEntrega?: string;
+      numeroFactura?: string | null;
     }
   ) => void;
+}
+
+function OrderInvoiceControl({
+  orderId,
+  currentInvoice,
+  clientRequiresInvoice,
+  onSave,
+}: {
+  orderId: number;
+  currentInvoice?: string | null;
+  clientRequiresInvoice?: boolean;
+  onSave: (val: string | null) => void;
+}) {
+  const [value, setValue] = useState(currentInvoice || '');
+  const [isSavedRecently, setIsSavedRecently] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+
+  useEffect(() => {
+    setValue(currentInvoice || '');
+  }, [currentInvoice]);
+
+  const handleSave = () => {
+    const trimmed = value.trim();
+    onSave(trimmed ? trimmed : null);
+    setIsSavedRecently(true);
+    setIsEditing(false);
+    setTimeout(() => setIsSavedRecently(false), 2500);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSave();
+    }
+  };
+
+  return (
+    <div
+      className={`p-2.5 rounded-xl border text-xs transition-all ${
+        currentInvoice
+          ? 'bg-purple-50/70 border-purple-200'
+          : clientRequiresInvoice
+          ? 'bg-amber-50/80 border-amber-300 ring-1 ring-amber-300'
+          : 'bg-slate-50 border-slate-200'
+      }`}
+    >
+      <div className="flex items-center justify-between mb-1.5">
+        <label className="font-extrabold flex items-center gap-1.5 text-slate-700">
+          <FileText className="w-3.5 h-3.5 text-purple-600 shrink-0" />
+          <span>Nº de Factura:</span>
+        </label>
+        {clientRequiresInvoice && !currentInvoice && (
+          <span className="text-[10px] font-black bg-amber-200 text-amber-900 px-1.5 py-0.5 rounded">
+            ⚠️ Requiere Factura
+          </span>
+        )}
+        {currentInvoice && !isEditing && (
+          <span className="text-[10px] font-bold text-purple-700 bg-purple-100 px-1.5 py-0.5 rounded flex items-center gap-1">
+            <Check className="w-3 h-3 text-purple-600" /> Registrada
+          </span>
+        )}
+      </div>
+
+      <div className="flex items-center gap-1.5">
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => {
+            setValue(e.target.value);
+            setIsEditing(true);
+          }}
+          onKeyDown={handleKeyDown}
+          placeholder="Ej: FAC-1024..."
+          className="flex-1 bg-white border border-slate-300 focus:border-purple-500 focus:ring-1 focus:ring-purple-400 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-800 outline-none placeholder:text-slate-400 placeholder:font-normal"
+        />
+        <button
+          onClick={handleSave}
+          disabled={value === (currentInvoice || '') && !isEditing}
+          className={`px-3 py-1.5 rounded-lg font-bold text-xs transition flex items-center gap-1 shadow-2xs active:scale-95 shrink-0 ${
+            isSavedRecently
+              ? 'bg-emerald-600 text-white'
+              : 'bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-50 disabled:cursor-not-allowed'
+          }`}
+          title="Guardar Número de Factura"
+        >
+          {isSavedRecently ? (
+            <>
+              <Check className="w-3 h-3" />
+              <span>✓ Guardado</span>
+            </>
+          ) : (
+            <span>Guardar</span>
+          )}
+        </button>
+      </div>
+    </div>
+  );
 }
 
 export function AdminDashboard({
@@ -566,6 +665,16 @@ export function AdminDashboard({
                           📄 Rem: {order.numeroRemision}
                         </span>
                       )}
+                      {order.numeroFactura && (
+                        <span className="text-[10px] bg-purple-100 text-purple-900 border border-purple-200 font-black px-2 py-0.5 rounded-md flex items-center gap-1">
+                          🧾 Fac: {order.numeroFactura}
+                        </span>
+                      )}
+                      {!order.numeroFactura && order.cliente?.requiereFactura && order.estadoEntrega === 'ENTREGADO' && (
+                        <span className="text-[10px] bg-amber-100 text-amber-900 border border-amber-300 font-black px-2 py-0.5 rounded-md flex items-center gap-1">
+                          🧾 Fac: Pendiente
+                        </span>
+                      )}
                     </div>
 
                     <div className="flex items-center gap-1.5">
@@ -799,6 +908,16 @@ export function AdminDashboard({
                         ↩ Revertir
                       </button>
                     </div>
+                  )}
+
+                  {/* Control de Facturación para Pedidos Entregados o con Factura */}
+                  {(order.estadoEntrega === 'ENTREGADO' || order.numeroFactura) && (
+                    <OrderInvoiceControl
+                      orderId={order.id}
+                      currentInvoice={order.numeroFactura}
+                      clientRequiresInvoice={order.cliente?.requiereFactura}
+                      onSave={(val) => onUpdateOrder(order.id, { numeroFactura: val })}
+                    />
                   )}
 
                   {/* Change Order Delivery Status, Reassign Rejected Order, or Schedule for Tomorrow */}

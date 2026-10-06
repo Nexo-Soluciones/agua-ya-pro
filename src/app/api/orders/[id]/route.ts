@@ -17,6 +17,7 @@ export async function PATCH(
       metodoPago,
       comprobanteRef,
       numeroRemision,
+      numeroFactura,
       notasEntrega,
       operadorNombre,
       cantidadBotellones,
@@ -73,6 +74,10 @@ export async function PATCH(
 
     if (numeroRemision !== undefined) {
       updateData.numeroRemision = numeroRemision;
+    }
+
+    if (numeroFactura !== undefined) {
+      updateData.numeroFactura = numeroFactura ? String(numeroFactura).trim() : null;
     }
 
     // Synchronize Botellon OrderItem if cantidadBotellones changed
@@ -154,6 +159,9 @@ export async function PATCH(
     }
     if (metodoPago && metodoPago !== existingOrder.metodoPago) {
       auditDetails.push(`Método de pago: [${metodoPago}]`);
+    }
+    if (numeroFactura !== undefined && numeroFactura !== existingOrder.numeroFactura) {
+      auditDetails.push(`Número de factura: [${updateData.numeroFactura || 'Sin Factura'}]`);
     }
 
     if (auditDetails.length > 0) {

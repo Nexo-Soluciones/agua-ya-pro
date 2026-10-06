@@ -127,6 +127,7 @@ export default function Home() {
       metodoPago?: string;
       comprobanteRef?: string;
       numeroRemision?: string;
+      numeroFactura?: string | null;
       notasEntrega?: string;
       cantidadBotellones?: number;
       montoTotal?: number;

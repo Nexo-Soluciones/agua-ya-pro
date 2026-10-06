@@ -287,6 +287,7 @@ export async function POST(req: NextRequest) {
         estadoPago: metodoPago === 'EFECTIVO' ? 'VERIFICADO' : 'PENDIENTE',
         estadoEntrega,
         numeroRemision: numeroRemision ? String(numeroRemision).trim() : null,
+        numeroFactura: numFactura,
         creadoPor: finalCreadoPor,
         items: {
           create: orderItemsData,
