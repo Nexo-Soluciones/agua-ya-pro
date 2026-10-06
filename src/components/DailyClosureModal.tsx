@@ -94,33 +94,43 @@ export function DailyClosureModal({
   const totalItemsCount = productList.reduce((sum, p) => sum + p.cantidad, 0);
   const totalOtherUnits = Math.max(0, totalItemsCount - totalBottles);
 
-  // Breakdown per driver with pure botellones and other products segregated
+  // Breakdown per driver with pure botellones and other products segregated with monetary values
   const driverBreakdown = drivers.map((driver) => {
     const driverDelivered = deliveredOrders.filter((o) => o.repartidorId === driver.id);
     
     let bottles = 0;
+    let bottlesMoney = 0;
     let otherItemsCount = 0;
-    const otherProductsMap: Record<string, number> = {};
+    let otherItemsMoney = 0;
+    const otherProductsMap: Record<string, { count: number; total: number }> = {};
 
     driverDelivered.forEach((order) => {
       if (order.items && order.items.length > 0) {
         order.items.forEach((item: any) => {
           const isBotellon = String(item.nombreProducto || '').toUpperCase().includes('BOTELLON');
+          const itemVal = item.subtotal || item.cantidad * item.precioUnitario;
           if (isBotellon) {
             bottles += item.cantidad;
+            bottlesMoney += itemVal;
           } else {
             const name = item.nombreProducto || 'Otro';
-            otherProductsMap[name] = (otherProductsMap[name] || 0) + item.cantidad;
+            if (!otherProductsMap[name]) {
+              otherProductsMap[name] = { count: 0, total: 0 };
+            }
+            otherProductsMap[name].count += item.cantidad;
+            otherProductsMap[name].total += itemVal;
             otherItemsCount += item.cantidad;
+            otherItemsMoney += itemVal;
           }
         });
       } else {
         bottles += (order.cantidadBotellones || 0);
+        bottlesMoney += (order.montoTotal || 0);
       }
     });
 
     const otherItemsSummary = Object.entries(otherProductsMap)
-      .map(([name, qty]) => `${qty}x ${name}`)
+      .map(([name, data]) => `${data.count}x ${name} ($${data.total.toLocaleString('es-CO')})`)
       .join(', ');
 
     const totalUnits = bottles + otherItemsCount;
@@ -139,7 +149,9 @@ export function DailyClosureModal({
       driver,
       deliveredCount: driverDelivered.length,
       bottles,
+      bottlesMoney,
       otherItemsCount,
+      otherItemsMoney,
       otherItemsSummary: otherItemsSummary || '-',
       totalUnits,
       cash,
@@ -148,6 +160,9 @@ export function DailyClosureModal({
       total: cash + transfer + credit,
     };
   });
+
+  const totalBottlesMoney = driverBreakdown.reduce((sum, d) => sum + d.bottlesMoney, 0);
+  const totalOtherMoney = driverBreakdown.reduce((sum, d) => sum + d.otherItemsMoney, 0);
 
   // Export Professional Styled Excel function
   const handleExportExcel = () => {
@@ -465,14 +480,20 @@ export function DailyClosureModal({
                           {row.deliveredCount} pedidos entregados
                         </span>
                       </td>
-                      <td className="py-3.5 px-2 text-center font-black text-sky-700">
-                        {row.bottles} bot.
+                      <td className="py-3.5 px-2 text-center">
+                        <span className="font-black text-sky-700 block">{row.bottles} bot.</span>
+                        <span className="text-[10px] text-slate-500 font-bold block">${row.bottlesMoney.toLocaleString('es-CO')}</span>
                       </td>
                       <td className="py-3.5 px-2 text-center">
                         {row.otherItemsCount > 0 ? (
-                          <span className="font-bold text-amber-900 bg-amber-100/90 border border-amber-200 px-2 py-0.5 rounded-md text-[11px] inline-block">
-                            {row.otherItemsSummary}
-                          </span>
+                          <div className="space-y-0.5">
+                            <span className="font-black text-amber-900 text-xs block">
+                              {row.otherItemsCount} uds <span className="text-[11px] font-bold text-amber-700">(${row.otherItemsMoney.toLocaleString('es-CO')})</span>
+                            </span>
+                            <span className="font-medium text-amber-900 bg-amber-100/90 border border-amber-200 px-2 py-0.5 rounded-md text-[10px] inline-block">
+                              {row.otherItemsSummary}
+                            </span>
+                          </div>
                         ) : (
                           <span className="text-slate-400 font-normal">-</span>
                         )}
@@ -489,8 +510,13 @@ export function DailyClosureModal({
                       <td className="py-3.5 px-3 text-right font-bold text-purple-700">
                         ${row.transfer.toLocaleString('es-CO')}
                       </td>
-                      <td className="py-3.5 px-4 text-right font-black text-slate-900 text-sm">
-                        ${row.total.toLocaleString('es-CO')}
+                      <td className="py-3.5 px-4 text-right">
+                        <span className="font-black text-slate-900 text-sm block">${row.total.toLocaleString('es-CO')}</span>
+                        {row.otherItemsCount > 0 && (
+                          <span className="text-[9px] text-slate-400 block font-normal">
+                            (Bot: ${row.bottlesMoney.toLocaleString('es-CO')} | Otros: ${row.otherItemsMoney.toLocaleString('es-CO')})
+                          </span>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -498,13 +524,24 @@ export function DailyClosureModal({
                 <tfoot className="bg-slate-900 text-white font-black print:bg-slate-100 print:text-slate-900">
                   <tr>
                     <td className="py-3 px-4">TOTALES</td>
-                    <td className="py-3 px-2 text-center text-sky-300 print:text-slate-900 font-black">{totalBottles} bot.</td>
-                    <td className="py-3 px-2 text-center text-amber-300 print:text-slate-900 font-bold">{totalOtherUnits} uds</td>
+                    <td className="py-3 px-2 text-center text-sky-300 print:text-slate-900">
+                      <span className="font-black block">{totalBottles} bot.</span>
+                      <span className="text-[10px] text-sky-200 font-bold block">(${totalBottlesMoney.toLocaleString('es-CO')})</span>
+                    </td>
+                    <td className="py-3 px-2 text-center text-amber-300 print:text-slate-900">
+                      <span className="font-bold block">{totalOtherUnits} uds</span>
+                      <span className="text-[10px] text-amber-200 font-bold block">(${totalOtherMoney.toLocaleString('es-CO')})</span>
+                    </td>
                     <td className="py-3 px-2 text-center text-emerald-300 print:text-slate-900 font-black">{totalItemsCount} unid.</td>
                     <td className="py-3 px-3 text-right text-emerald-400 print:text-slate-900">${totalCashCollected.toLocaleString('es-CO')}</td>
                     <td className="py-3 px-3 text-right text-amber-400 print:text-slate-900">${totalCreditCollected.toLocaleString('es-CO')}</td>
                     <td className="py-3 px-3 text-right text-purple-300 print:text-slate-900">${totalTransferCollected.toLocaleString('es-CO')}</td>
-                    <td className="py-3 px-4 text-right text-white print:text-slate-900 text-sm">${grandTotal.toLocaleString('es-CO')}</td>
+                    <td className="py-3 px-4 text-right text-white print:text-slate-900 text-sm">
+                      <span className="block">${grandTotal.toLocaleString('es-CO')}</span>
+                      <span className="text-[9px] text-slate-300 block font-normal">
+                        (Bot: ${totalBottlesMoney.toLocaleString('es-CO')} | Otros: ${totalOtherMoney.toLocaleString('es-CO')})
+                      </span>
+                    </td>
                   </tr>
                 </tfoot>
               </table>

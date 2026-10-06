@@ -11,7 +11,9 @@ export interface ReportData {
     driver: any;
     deliveredCount: number;
     bottles: number;
+    bottlesMoney?: number;
     otherItemsCount?: number;
+    otherItemsMoney?: number;
     otherItemsSummary?: string;
     totalUnits?: number;
     totalItems?: number;
@@ -95,6 +97,23 @@ export function exportStyledExcel(data: ReportData) {
   const totalItemsCount = productList.reduce((sum, p) => sum + p.cantidad, 0);
   const totalItemsRevenue = productList.reduce((sum, p) => sum + p.total, 0);
   const totalOtherUnits = Math.max(0, totalItemsCount - totalBottles);
+  const totalBottlesMoney = driverBreakdown.reduce((sum, d) => sum + (d.bottlesMoney || 0), 0);
+  const totalOtherMoney = driverBreakdown.reduce((sum, d) => sum + (d.otherItemsMoney || 0), 0);
+
+  let totalDeliveryBotMoney = 0;
+  let totalDeliveryOtherMoney = 0;
+  deliveredOrders.forEach((o) => {
+    if (o.items && o.items.length > 0) {
+      o.items.forEach((i: any) => {
+        const isBot = String(i.nombreProducto || '').toUpperCase().includes('BOTELLON');
+        const val = i.subtotal || i.cantidad * i.precioUnitario;
+        if (isBot) totalDeliveryBotMoney += val;
+        else totalDeliveryOtherMoney += val;
+      });
+    } else {
+      totalDeliveryBotMoney += o.montoTotal || 0;
+    }
+  });
 
   const htmlContent = `
     <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
@@ -185,7 +204,7 @@ export function exportStyledExcel(data: ReportData) {
           <td colspan="2" class="th-main">Repartidor</td>
           <td class="th-main">Entregas</td>
           <td class="th-main">Botellones (20L)</td>
-          <td colspan="2" class="th-main">Garrafas / Otros</td>
+          <td colspan="2" class="th-main">Garrafas / Otras Presentaciones</td>
           <td class="th-main">Total Ítems</td>
           <td colspan="2" class="th-main">Efectivo Físico</td>
           <td colspan="2" class="th-main">Nequi / Bancos</td>
@@ -198,13 +217,25 @@ export function exportStyledExcel(data: ReportData) {
           <tr class="${index % 2 === 1 ? 'tr-zebra' : ''}">
             <td colspan="2" class="td-cell td-bold">🚚 ${item.driver.nombre}</td>
             <td class="td-cell td-center td-bold">${item.deliveredCount}</td>
-            <td class="td-cell td-center td-bold" style="color: #0284c7; font-size: 10pt;">${item.bottles}</td>
-            <td colspan="2" class="td-cell td-center" style="font-size: 8.5pt; color: #475569;">${item.otherItemsSummary && item.otherItemsSummary !== '-' ? item.otherItemsSummary : '-'}</td>
+            <td class="td-cell td-center td-bold" style="color: #0284c7; font-size: 9.5pt;">
+              ${item.bottles} bot.<br/>
+              <span style="font-size: 8pt; color: #0369a1; font-weight: normal;">($${(item.bottlesMoney || 0).toLocaleString('es-CO')})</span>
+            </td>
+            <td colspan="2" class="td-cell td-center" style="font-size: 8.5pt; color: #475569;">
+              ${
+                item.otherItemsCount && item.otherItemsCount > 0
+                  ? `<b style="color: #92400e;">${item.otherItemsCount} uds ($${(item.otherItemsMoney || 0).toLocaleString('es-CO')})</b><br/><span style="font-size: 8pt; color: #64748b;">${item.otherItemsSummary}</span>`
+                  : '-'
+              }
+            </td>
             <td class="td-cell td-center td-bold" style="color: #0f172a;">${item.totalUnits ?? (item.bottles + (item.otherItemsCount || 0))}</td>
             <td colspan="2" class="td-cell td-right td-bold" style="color: #059669;">$${item.cash.toLocaleString('es-CO')}</td>
             <td colspan="2" class="td-cell td-right td-bold" style="color: #7c3aed;">$${item.transfer.toLocaleString('es-CO')}</td>
             <td class="td-cell td-right td-bold" style="color: #d97706;">$${item.credit.toLocaleString('es-CO')}</td>
-            <td colspan="2" class="td-cell td-right td-bold" style="color: #0f172a;">$${item.total.toLocaleString('es-CO')}</td>
+            <td colspan="2" class="td-cell td-right td-bold" style="color: #0f172a;">
+              $${item.total.toLocaleString('es-CO')}<br/>
+              <span style="font-size: 7.5pt; color: #64748b; font-weight: normal;">(Bot: $${(item.bottlesMoney || 0).toLocaleString('es-CO')} | Otros: $${(item.otherItemsMoney || 0).toLocaleString('es-CO')})</span>
+            </td>
           </tr>
         `
           )
@@ -212,13 +243,21 @@ export function exportStyledExcel(data: ReportData) {
         <tr>
           <td colspan="2" class="td-cell tfoot-total">TOTALES GENERALES</td>
           <td class="td-cell tfoot-total td-center">${deliveredOrders.length}</td>
-          <td class="td-cell tfoot-total td-center" style="color: #38bdf8;">${totalBottles}</td>
-          <td colspan="2" class="td-cell tfoot-total td-center" style="color: #cbd5e1; font-size: 8.5pt;">${totalOtherUnits > 0 ? `${totalOtherUnits} uds` : '-'}</td>
+          <td class="td-cell tfoot-total td-center" style="color: #38bdf8;">
+            ${totalBottles} bot.<br/>
+            <span style="font-size: 8pt; color: #bae6fd; font-weight: normal;">($${totalBottlesMoney.toLocaleString('es-CO')})</span>
+          </td>
+          <td colspan="2" class="td-cell tfoot-total td-center" style="color: #cbd5e1; font-size: 8.5pt;">
+            ${totalOtherUnits > 0 ? `${totalOtherUnits} uds ($${totalOtherMoney.toLocaleString('es-CO')})` : '-'}
+          </td>
           <td class="td-cell tfoot-total td-center" style="color: #ffffff;">${totalItemsCount}</td>
           <td colspan="2" class="td-cell tfoot-total td-right" style="color: #4ade80;">$${totalCashCollected.toLocaleString('es-CO')}</td>
           <td colspan="2" class="td-cell tfoot-total td-right" style="color: #c084fc;">$${totalTransferCollected.toLocaleString('es-CO')}</td>
           <td class="td-cell tfoot-total td-right" style="color: #fde047;">$${totalCreditCollected.toLocaleString('es-CO')}</td>
-          <td colspan="2" class="td-cell tfoot-total td-right" style="color: #ffffff;">$${grandTotal.toLocaleString('es-CO')}</td>
+          <td colspan="2" class="td-cell tfoot-total td-right" style="color: #ffffff;">
+            $${grandTotal.toLocaleString('es-CO')}<br/>
+            <span style="font-size: 7.5pt; color: #94a3b8; font-weight: normal;">(Bot: $${totalBottlesMoney.toLocaleString('es-CO')} | Otros: $${totalOtherMoney.toLocaleString('es-CO')})</span>
+          </td>
         </tr>
         <tr><td colspan="14" height="25"></td></tr>
 
@@ -257,30 +296,42 @@ export function exportStyledExcel(data: ReportData) {
         </tr>
         <tr>
           <td class="th-main">Pedido #</td>
-          <td class="th-main">Nº Remisión</td>
-          <td class="th-main">Nº Factura</td>
+          <td class="th-main">Nº Remisión / Factura</td>
           <td class="th-main">Registrado Por</td>
-          <td colspan="2" class="th-main">Dirección Exacta (Prioridad)</td>
-          <td class="th-main">Barrio</td>
+          <td colspan="2" class="th-main">Dirección Exacta / Barrio</td>
           <td class="th-main">Cliente</td>
           <td class="th-main">Teléfono</td>
           <td class="th-main">Repartidor</td>
           <td colspan="2" class="th-main">Detalle Sesionado de Productos</td>
+          <td class="th-main">Subtotal Botellones ($)</td>
+          <td class="th-main">Subtotal Otros ($)</td>
           <td class="th-main">Método & Validación</td>
-          <td class="th-main">Total ($)</td>
+          <td class="th-main">Total Pedido ($)</td>
         </tr>
         ${deliveredOrders
           .map(
             (o, index) => {
-              const itemsListHtml =
-                o.items && o.items.length > 0
-                  ? o.items
-                      .map(
-                        (i: any) =>
-                          `<div style="margin: 2px 0;"><b>${i.cantidad}x</b> ${i.nombreProducto} <span style="color:#64748b; font-size:8pt;">($${(i.subtotal || i.cantidad * i.precioUnitario).toLocaleString('es-CO')})</span></div>`
-                      )
-                      .join('')
-                  : `<div><b>${o.cantidadBotellones}x</b> BOTELLON (20L)</div>`;
+              let orderBotellonMoney = 0;
+              let orderOtherMoney = 0;
+              let itemsListHtml = '';
+
+              if (o.items && o.items.length > 0) {
+                itemsListHtml = o.items
+                  .map((i: any) => {
+                    const isBot = String(i.nombreProducto || '').toUpperCase().includes('BOTELLON');
+                    const val = i.subtotal || i.cantidad * i.precioUnitario;
+                    if (isBot) {
+                      orderBotellonMoney += val;
+                    } else {
+                      orderOtherMoney += val;
+                    }
+                    return `<b>${i.cantidad}x</b> ${i.nombreProducto} <span style="color:#475569; font-size:8pt;">($${val.toLocaleString('es-CO')})</span>`;
+                  })
+                  .join('<br style="mso-data-placement:same-cell;" /><br/>');
+              } else {
+                orderBotellonMoney = o.montoTotal || 0;
+                itemsListHtml = `<b>${o.cantidadBotellones}x</b> BOTELLON (20L)`;
+              }
 
               const paymentValidationBadge =
                 o.metodoPago === 'NEQUI' || o.metodoPago === 'TRANSFERENCIA'
@@ -292,15 +343,20 @@ export function exportStyledExcel(data: ReportData) {
               return `
           <tr class="${index % 2 === 1 ? 'tr-zebra' : ''}">
             <td class="td-cell td-center td-bold">#${o.numeroPedido || o.id}</td>
-            <td class="td-cell td-remision">${o.numeroRemision ? 'REM: ' + o.numeroRemision : 'Sin Remisión'}</td>
-            <td class="td-cell td-factura">${o.numeroFactura ? 'FAC: ' + o.numeroFactura : (o.cliente?.requiereFactura ? '<span style="color:#b45309; font-weight:bold;">⚠️ Pendiente</span>' : '-')}</td>
+            <td class="td-cell td-center">
+              <span class="td-remision" style="display:inline-block; padding: 2px 4px; border-radius: 4px;">${o.numeroRemision ? 'REM: ' + o.numeroRemision : 'Sin Remisión'}</span><br/>
+              <span class="td-factura" style="display:inline-block; margin-top: 2px; padding: 2px 4px; border-radius: 4px;">${o.numeroFactura ? 'FAC: ' + o.numeroFactura : (o.cliente?.requiereFactura ? '<span style="color:#b45309; font-weight:bold;">⚠️ Fac Pendiente</span>' : 'Sin Factura')}</span>
+            </td>
             <td class="td-cell td-bold" style="color: #475569;">👤 ${o.creadoPor || 'Oficina'}</td>
-            <td colspan="2" class="td-cell td-address">📍 ${o.cliente?.direccion || 'N/A'}</td>
-            <td class="td-cell">${o.cliente?.barrioSector || '-'}</td>
+            <td colspan="2" class="td-cell td-address">
+              📍 ${o.cliente?.direccion || 'N/A'}${o.cliente?.barrioSector ? '<br/><span style="font-size: 8pt; color: #475569; font-weight: normal;">Sector: ' + o.cliente.barrioSector + '</span>' : ''}
+            </td>
             <td class="td-cell td-bold">${o.cliente?.nombre || 'Cliente General'}</td>
             <td class="td-cell">${o.cliente?.telefono || '-'}</td>
             <td class="td-cell">${o.repartidor?.nombre || 'Sin Asignar'}</td>
             <td colspan="2" class="td-cell" style="color: #0369a1; font-size: 8.5pt;">${itemsListHtml}</td>
+            <td class="td-cell td-right td-bold" style="color: #0284c7;">${orderBotellonMoney > 0 ? '$' + orderBotellonMoney.toLocaleString('es-CO') : '-'}</td>
+            <td class="td-cell td-right td-bold" style="color: #d97706;">${orderOtherMoney > 0 ? '$' + orderOtherMoney.toLocaleString('es-CO') : '-'}</td>
             <td class="td-cell td-center td-bold" style="${
               o.metodoPago === 'EFECTIVO'
                 ? 'background-color: #d1fae5; color: #065f46;'
@@ -311,12 +367,19 @@ export function exportStyledExcel(data: ReportData) {
               ${o.metodoPago === 'CREDITO' ? 'A CRÉDITO' : o.metodoPago}
               ${paymentValidationBadge}
             </td>
-            <td class="td-cell td-right td-money">$${o.montoTotal?.toLocaleString('es-CO')}</td>
+            <td class="td-cell td-right td-money" style="font-size: 10pt;">$${(o.montoTotal || (orderBotellonMoney + orderOtherMoney)).toLocaleString('es-CO')}</td>
           </tr>
         `;
             }
           )
           .join('')}
+        <tr>
+          <td colspan="10" class="td-cell tfoot-total">TOTALES GENERALES DE ENTREGAS (${deliveredOrders.length} PEDIDOS)</td>
+          <td class="td-cell tfoot-total td-right" style="color: #38bdf8;">$${totalDeliveryBotMoney.toLocaleString('es-CO')}</td>
+          <td class="td-cell tfoot-total td-right" style="color: #fde047;">$${totalDeliveryOtherMoney.toLocaleString('es-CO')}</td>
+          <td class="td-cell tfoot-total td-center" style="font-size: 8.5pt;">CONCILIADO</td>
+          <td class="td-cell tfoot-total td-right" style="color: #4ade80; font-size: 11pt;">$${grandTotal.toLocaleString('es-CO')}</td>
+        </tr>
         ${
           scheduledTomorrowOrders && scheduledTomorrowOrders.length > 0
             ? `
