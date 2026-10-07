@@ -66,6 +66,13 @@ export async function PATCH(
 
     if (metodoPago !== undefined) {
       updateData.metodoPago = metodoPago;
+      if (estadoPago === undefined) {
+        if (metodoPago === 'EFECTIVO') {
+          updateData.estadoPago = 'VERIFICADO';
+        } else if (metodoPago === 'NEQUI' || metodoPago === 'TRANSFERENCIA' || metodoPago === 'CREDITO') {
+          updateData.estadoPago = 'PENDIENTE';
+        }
+      }
     }
 
     if (comprobanteRef !== undefined) {
@@ -164,10 +171,19 @@ export async function PATCH(
       auditDetails.push(`Estado de pago: [${estadoPago}]`);
     }
     if (metodoPago && metodoPago !== existingOrder.metodoPago) {
-      auditDetails.push(`Método de pago: [${metodoPago}]`);
+      auditDetails.push(`Método de pago: [${existingOrder.metodoPago || 'N/A'} -> ${metodoPago}]`);
+    }
+    if (comprobanteRef !== undefined && comprobanteRef !== existingOrder.comprobanteRef) {
+      auditDetails.push(`Comprobante: [${comprobanteRef || 'Ninguno'}]`);
+    }
+    if (numeroRemision !== undefined && numeroRemision !== existingOrder.numeroRemision) {
+      auditDetails.push(`Remisión: [${numeroRemision || 'Ninguna'}]`);
     }
     if (numeroFactura !== undefined && numeroFactura !== existingOrder.numeroFactura) {
       auditDetails.push(`Número de factura: [${updateData.numeroFactura || 'Sin Factura'}]`);
+    }
+    if (notasEntrega) {
+      auditDetails.push(`Nota: [${notasEntrega}]`);
     }
 
     if (auditDetails.length > 0) {

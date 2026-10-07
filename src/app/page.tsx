@@ -156,6 +156,7 @@ export default function Home() {
       numeroRemision?: string;
       numeroFactura?: string | null;
       notasEntrega?: string;
+      operadorNombre?: string;
       cantidadBotellones?: number;
       montoTotal?: number;
       precioUnitario?: number;

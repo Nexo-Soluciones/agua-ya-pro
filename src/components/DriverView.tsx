@@ -19,6 +19,7 @@ import {
   ChevronRight,
   XCircle,
   AlertTriangle,
+  Edit3,
 } from 'lucide-react';
 
 interface DriverViewProps {
@@ -34,6 +35,7 @@ interface DriverViewProps {
       comprobanteRef?: string;
       numeroRemision?: string;
       notasEntrega?: string;
+      operadorNombre?: string;
       cantidadBotellones?: number;
       montoTotal?: number;
       precioUnitario?: number;
@@ -48,6 +50,15 @@ export function DriverView({ driver, orders, onUpdateOrder }: DriverViewProps) {
   const [comprobanteRef, setComprobanteRef] = useState('');
   const [numeroRemision, setNumeroRemision] = useState('');
   const [notasEntrega, setNotasEntrega] = useState('');
+
+  // Payment edit modal state (for correcting already delivered orders)
+  const [selectedOrderForPaymentEdit, setSelectedOrderForPaymentEdit] = useState<any | null>(null);
+  const [editMetodoPago, setEditMetodoPago] = useState<'EFECTIVO' | 'NEQUI' | 'TRANSFERENCIA' | 'CREDITO'>('EFECTIVO');
+  const [editComprobanteRef, setEditComprobanteRef] = useState('');
+  const [editNumeroRemision, setEditNumeroRemision] = useState('');
+  const [editMotivo, setEditMotivo] = useState('');
+  const [editCustomNota, setEditCustomNota] = useState('');
+  const [editSuccessToast, setEditSuccessToast] = useState<string | null>(null);
   
   // Rejection modal state
   const [selectedOrderForRejection, setSelectedOrderForRejection] = useState<any | null>(null);
@@ -236,10 +247,60 @@ export function DriverView({ driver, orders, onUpdateOrder }: DriverViewProps) {
     }
   };
 
+  const openPaymentEditModal = (order: any) => {
+    setSelectedOrderForPaymentEdit(order);
+    setEditMetodoPago((order.metodoPago as any) || 'EFECTIVO');
+    setEditComprobanteRef(order.comprobanteRef || '');
+    setEditNumeroRemision(order.numeroRemision || '');
+    setEditMotivo('');
+    setEditCustomNota('');
+  };
+
+  const handleConfirmPaymentEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedOrderForPaymentEdit) return;
+
+    setIsSubmitting(true);
+    try {
+      const newEstadoPago = editMetodoPago === 'EFECTIVO' ? 'VERIFICADO' : 'PENDIENTE';
+      const motivoText = editMotivo ? `Motivo: ${editMotivo}` : '';
+      const notaText = editCustomNota.trim() ? `Obs: ${editCustomNota.trim()}` : '';
+      const auditNote = [motivoText, notaText, `Actualizado por repartidor ${driver.nombre}`].filter(Boolean).join(' | ');
+
+      await onUpdateOrder(selectedOrderForPaymentEdit.id, {
+        metodoPago: editMetodoPago,
+        estadoPago: newEstadoPago,
+        comprobanteRef: editMetodoPago === 'NEQUI' || editMetodoPago === 'TRANSFERENCIA' ? editComprobanteRef.trim() : undefined,
+        numeroRemision: editNumeroRemision.trim() || undefined,
+        notasEntrega: auditNote,
+        operadorNombre: driver.nombre,
+      });
+
+      const updatedOrderNum = selectedOrderForPaymentEdit.numeroPedido;
+      setSelectedOrderForPaymentEdit(null);
+      setEditSuccessToast(`✅ Pago del Pedido #${updatedOrderNum} actualizado correctamente a ${editMetodoPago}`);
+      setTimeout(() => setEditSuccessToast(null), 4000);
+    } catch (err) {
+      console.error('Error al modificar pago:', err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const now = new Date().getTime();
 
   return (
     <div className="max-w-lg mx-auto px-4 py-5 space-y-4 font-sans">
+      {/* Toast de confirmación de modificación de pago */}
+      {editSuccessToast && (
+        <div className="bg-emerald-600 text-white px-4 py-3 rounded-2xl shadow-lg font-bold text-xs flex items-center justify-between animate-in slide-in-from-top duration-200">
+          <span>{editSuccessToast}</span>
+          <button onClick={() => setEditSuccessToast(null)} className="text-emerald-200 hover:text-white p-1">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       {/* Driver Identity Card */}
       <div className="bg-gradient-to-r from-emerald-600 via-teal-700 to-sky-800 text-white p-5 rounded-3xl shadow-xl flex items-center justify-between border border-emerald-400/30">
         <div className="flex items-center gap-3.5">
@@ -630,9 +691,226 @@ export function DriverView({ driver, orders, onUpdateOrder }: DriverViewProps) {
                     </span>
                   </div>
                 </div>
+
+                {/* Comprobante / Referencia si existe */}
+                {order.comprobanteRef && (
+                  <div className="text-[11px] font-mono bg-purple-100/80 text-purple-900 border border-purple-200 px-3 py-1.5 rounded-xl flex items-center justify-between">
+                    <span className="font-semibold text-purple-700 font-sans">Comprobante / Ref:</span>
+                    <span className="font-bold">{order.comprobanteRef}</span>
+                  </div>
+                )}
+
+                {/* Acciones de Pago del Repartidor */}
+                <div className="pt-1">
+                  {order.estadoEntrega === 'CERRADO' ? (
+                    <div className="text-center py-2 px-3 bg-slate-100 text-slate-500 rounded-2xl text-[11px] font-bold border border-slate-200 flex items-center justify-center gap-1.5">
+                      <span>🔒 Liquidado en Cierre Diario (Cerrado)</span>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => openPaymentEditModal(order)}
+                      className="w-full py-2.5 px-3 bg-white hover:bg-sky-100/80 text-sky-900 border-2 border-sky-400/90 rounded-2xl font-black text-xs transition flex items-center justify-center gap-2 active:scale-[0.98] shadow-xs"
+                    >
+                      <CreditCard className="w-4 h-4 text-sky-600" />
+                      <span>✏️ Modificar / Corregir Pago</span>
+                    </button>
+                  )}
+                </div>
               </div>
             ))
           )}
+        </div>
+      )}
+
+      {/* Payment Modification Modal for Drivers */}
+      {selectedOrderForPaymentEdit && (
+        <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in duration-150 border border-slate-200 my-4">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-sky-600 to-blue-700 p-5 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CreditCard className="w-6 h-6" />
+                <div>
+                  <h3 className="font-black text-lg">Modificar Pago</h3>
+                  <p className="text-xs text-sky-100 font-medium">Pedido #{selectedOrderForPaymentEdit.numeroPedido}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedOrderForPaymentEdit(null)}
+                className="text-sky-100 hover:text-white p-1 rounded-lg hover:bg-white/10 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleConfirmPaymentEdit} className="p-5 space-y-4">
+              {/* Order Info */}
+              <div className="bg-sky-50/80 p-3.5 rounded-2xl border border-sky-200 text-slate-900 text-sm">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="font-black text-base">{selectedOrderForPaymentEdit.cliente.nombre}</span>
+                  <span className="font-black text-base text-sky-900">
+                    ${selectedOrderForPaymentEdit.montoTotal.toLocaleString('es-CO')} COP
+                  </span>
+                </div>
+                <p className="text-xs text-slate-600 font-medium flex items-center gap-1">
+                  <MapPin className="w-3.5 h-3.5 text-rose-500 shrink-0" />
+                  <span>{selectedOrderForPaymentEdit.cliente.direccion}</span>
+                </p>
+                <div className="mt-2 pt-2 border-t border-sky-200 text-xs flex items-center justify-between">
+                  <span className="text-slate-500 font-semibold">Registrado actualmente:</span>
+                  <span className="font-extrabold px-2 py-0.5 rounded-md bg-white border border-sky-300 text-slate-800">
+                    {selectedOrderForPaymentEdit.metodoPago === 'CREDITO'
+                      ? '📝 A Crédito'
+                      : selectedOrderForPaymentEdit.metodoPago === 'EFECTIVO'
+                      ? '💵 Efectivo'
+                      : '📲 Nequi / Transf'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Selector de Nuevo Método de Pago */}
+              <div>
+                <label className="block text-xs font-black text-slate-800 uppercase tracking-wider mb-2">
+                  Selecciona la Nueva Forma de Pago *
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditMetodoPago('EFECTIVO')}
+                    className={`py-3 px-2 rounded-2xl text-xs font-black border transition flex items-center justify-center gap-1.5 ${
+                      editMetodoPago === 'EFECTIVO'
+                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-md ring-2 ring-emerald-300'
+                        : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+                    }`}
+                  >
+                    <span>💵 Efectivo</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setEditMetodoPago('NEQUI')}
+                    className={`py-3 px-2 rounded-2xl text-xs font-black border transition flex items-center justify-center gap-1.5 ${
+                      editMetodoPago === 'NEQUI'
+                        ? 'bg-purple-700 text-white border-purple-700 shadow-md ring-2 ring-purple-300'
+                        : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+                    }`}
+                  >
+                    <span>📲 Nequi</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setEditMetodoPago('TRANSFERENCIA')}
+                    className={`py-3 px-2 rounded-2xl text-xs font-black border transition flex items-center justify-center gap-1.5 ${
+                      editMetodoPago === 'TRANSFERENCIA'
+                        ? 'bg-blue-600 text-white border-blue-600 shadow-md ring-2 ring-blue-300'
+                        : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+                    }`}
+                  >
+                    <span>🏦 Transferencia</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setEditMetodoPago('CREDITO')}
+                    className={`py-3 px-2 rounded-2xl text-xs font-black border transition flex items-center justify-center gap-1.5 ${
+                      editMetodoPago === 'CREDITO'
+                        ? 'bg-amber-600 text-white border-amber-600 shadow-md ring-2 ring-amber-300'
+                        : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+                    }`}
+                  >
+                    <span>📝 A Crédito</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Comprobante / Ref si es Nequi o Transferencia */}
+              {(editMetodoPago === 'NEQUI' || editMetodoPago === 'TRANSFERENCIA') && (
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Número de Comprobante / Referencia Bancaria
+                  </label>
+                  <input
+                    type="text"
+                    value={editComprobanteRef}
+                    onChange={(e) => setEditComprobanteRef(e.target.value)}
+                    placeholder="Ej. M123456 o # Referencia"
+                    className="w-full px-3.5 py-2.5 text-sm border-2 border-purple-300 rounded-2xl focus:ring-2 focus:ring-purple-400 outline-none font-mono font-bold text-purple-950 bg-purple-50/50"
+                  />
+                </div>
+              )}
+
+              {/* Número de Remisión */}
+              <div>
+                <label className="block text-xs font-black text-slate-800 uppercase tracking-wider mb-1 flex items-center gap-1">
+                  <Bookmark className="w-3.5 h-3.5 text-purple-600" />
+                  <span>Número de Remisión / Control Interno</span>
+                </label>
+                <input
+                  type="text"
+                  value={editNumeroRemision}
+                  onChange={(e) => setEditNumeroRemision(e.target.value)}
+                  placeholder="Ej. REM-1042 o Nº de Talonario"
+                  className="w-full px-3.5 py-2.5 text-sm border-2 border-slate-300 rounded-2xl focus:border-purple-600 focus:ring-2 focus:ring-purple-200 outline-none font-bold text-slate-900 bg-slate-50/50"
+                />
+              </div>
+
+              {/* Motivo Rápido de 1 Toque */}
+              <div>
+                <label className="block text-xs font-black text-slate-800 uppercase tracking-wider mb-1.5">
+                  Motivo de la Corrección
+                </label>
+                <div className="grid grid-cols-2 gap-1.5 mb-2">
+                  {[
+                    'Cliente pagó por Nequi',
+                    'Cliente pagó en Efectivo',
+                    'Se autorizó entrega a Crédito',
+                    'Error al registrar al entregar',
+                  ].map((motivo) => (
+                    <button
+                      key={motivo}
+                      type="button"
+                      onClick={() => setEditMotivo(motivo)}
+                      className={`p-2 text-[11px] rounded-xl font-bold border text-left transition leading-tight ${
+                        editMotivo === motivo
+                          ? 'bg-sky-600 text-white border-sky-600 shadow-xs'
+                          : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                      }`}
+                    >
+                      {motivo}
+                    </button>
+                  ))}
+                </div>
+
+                <input
+                  type="text"
+                  value={editCustomNota}
+                  onChange={(e) => setEditCustomNota(e.target.value)}
+                  placeholder="Nota u observación adicional (opcional)"
+                  className="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-sky-500 outline-none"
+                />
+              </div>
+
+              <div className="pt-2 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedOrderForPaymentEdit(null)}
+                  className="w-1/3 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-2xl transition text-xs"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-2/3 py-3.5 bg-gradient-to-r from-sky-600 to-blue-700 hover:from-sky-700 hover:to-blue-800 text-white font-black rounded-2xl shadow-xl shadow-sky-600/30 transition text-sm disabled:opacity-50 active:scale-[0.98]"
+                >
+                  {isSubmitting ? 'Guardando...' : 'GUARDAR CORRECCIÓN'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 

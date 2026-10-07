@@ -84,11 +84,13 @@ interface AdminDashboardProps {
     data: {
       estadoEntrega?: string;
       repartidorId?: number | null;
+      metodoPago?: string;
       estadoPago?: string;
       comprobanteRef?: string;
       cantidadBotellones?: number;
       montoTotal?: number;
       notasEntrega?: string;
+      operadorNombre?: string;
       numeroFactura?: string | null;
     }
   ) => void;
@@ -781,16 +783,27 @@ export function AdminDashboard({
                     </div>
 
                     <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-200">
-                      <span className="text-slate-500 font-medium">Método de Pago:</span>
-                      <span className="font-bold text-slate-800 flex items-center gap-1">
-                        {order.metodoPago === 'EFECTIVO'
-                          ? '💵 Efectivo'
-                          : order.metodoPago === 'CREDITO'
-                          ? '📝 A Crédito'
-                          : order.metodoPago === 'NEQUI'
-                          ? '📲 Nequi'
-                          : '🏦 Transferencia'}
-                      </span>
+                      <span className="text-slate-500 font-semibold">Método de Pago:</span>
+                      <select
+                        value={order.metodoPago || 'EFECTIVO'}
+                        disabled={order.estadoEntrega === 'CERRADO'}
+                        onChange={(e) => {
+                          const newMetodo = e.target.value;
+                          const newEstado = newMetodo === 'EFECTIVO' ? 'VERIFICADO' : 'PENDIENTE';
+                          onUpdateOrder(order.id, {
+                            metodoPago: newMetodo,
+                            estadoPago: newEstado,
+                            operadorNombre: 'Administración',
+                          });
+                        }}
+                        className="text-xs font-bold px-2 py-0.5 rounded-lg border border-slate-300 bg-white text-slate-800 focus:ring-2 focus:ring-sky-500 outline-none cursor-pointer disabled:bg-slate-100 disabled:text-slate-500 shadow-2xs"
+                        title="Modificar método de pago del pedido"
+                      >
+                        <option value="EFECTIVO">💵 Efectivo</option>
+                        <option value="NEQUI">📲 Nequi</option>
+                        <option value="TRANSFERENCIA">🏦 Transferencia</option>
+                        <option value="CREDITO">📝 A Crédito</option>
+                      </select>
                     </div>
 
                     {/* Nequi / Transfer Status */}
