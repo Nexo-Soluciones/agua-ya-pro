@@ -92,8 +92,23 @@ export function DriverView({ driver, orders, onUpdateOrder }: DriverViewProps) {
     .filter((o) => o.metodoPago === 'NEQUI' || o.metodoPago === 'TRANSFERENCIA')
     .reduce((sum, o) => sum + o.montoTotal, 0);
 
+  // Helper function to count strictly botellones (20L), excluding other products (paquetes, bandejas, garrafas)
+  const getOrderBottlesCount = (order: any): number => {
+    if (order.items && order.items.length > 0) {
+      return order.items
+        .filter((i: any) => {
+          const name = String(i.nombreProducto || '').toUpperCase();
+          return name.includes('BOTELLON') && !name.includes('VC');
+        })
+        .reduce((sum: number, i: any) => sum + (Number(i.cantidad) || 0), 0);
+    }
+    const res = String(order.resumenProductos || '').toUpperCase();
+    if (res && !res.includes('BOTELLON')) return 0;
+    return Number(order.cantidadBotellones) || 0;
+  };
+
   const totalBottlesDelivered = completedToday.reduce(
-    (sum, o) => sum + o.cantidadBotellones,
+    (sum, o) => sum + getOrderBottlesCount(o),
     0
   );
 
@@ -345,9 +360,9 @@ export function DriverView({ driver, orders, onUpdateOrder }: DriverViewProps) {
       {/* Metrics Summary Strip */}
       <div className="grid grid-cols-3 gap-2.5">
         <div className="glass-mac p-3.5 rounded-2xl text-center">
-          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Entregados</span>
-          <span className="text-xl sm:text-2xl font-black text-sky-600">{completedToday.length}</span>
-          <span className="text-[10px] text-slate-600 font-medium block">({totalBottlesDelivered} bot.)</span>
+          <span className="text-[10px] font-bold text-sky-600 uppercase tracking-wider block">Botellones</span>
+          <span className="text-xl sm:text-2xl font-black text-sky-600">{totalBottlesDelivered}</span>
+          <span className="text-[10px] text-slate-600 font-medium block">({completedToday.length} pedidos)</span>
         </div>
 
         <div className="glass-mac p-3.5 rounded-2xl text-center">
@@ -674,7 +689,13 @@ export function DriverView({ driver, orders, onUpdateOrder }: DriverViewProps) {
 
                 <div className="flex items-center justify-between text-xs pt-2 border-t border-sky-200/60">
                   <span className="font-bold text-slate-700">
-                    {order.cantidadBotellones} Botellón{order.cantidadBotellones > 1 ? 'es' : ''}
+                    {(() => {
+                      const botCount = getOrderBottlesCount(order);
+                      if (botCount > 0) {
+                        return `${botCount} Botellón${botCount > 1 ? 'es' : ''}`;
+                      }
+                      return order.resumenProductos || (order.items && order.items.length > 0 ? order.items.map((i: any) => `${i.cantidad}x ${i.nombreProducto}`).join(', ') : 'Otros productos');
+                    })()}
                   </span>
                   <div className="flex items-center gap-2">
                     <span className={`font-bold px-2 py-0.5 rounded-md text-[11px] ${
