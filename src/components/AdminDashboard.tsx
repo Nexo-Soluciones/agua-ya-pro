@@ -193,6 +193,114 @@ function OrderInvoiceControl({
   );
 }
 
+function OrderPaymentValidationControl({
+  order,
+  onUpdateOrder,
+}: {
+  order: any;
+  onUpdateOrder: (orderId: number, data: any) => void;
+}) {
+  const [refValue, setRefValue] = useState(order.comprobanteRef || '');
+  const [showError, setShowError] = useState(false);
+
+  useEffect(() => {
+    setRefValue(order.comprobanteRef || '');
+  }, [order.comprobanteRef]);
+
+  const isRefValid = refValue.trim().length > 0;
+
+  const handleValidate = () => {
+    if (!isRefValid) {
+      setShowError(true);
+      return;
+    }
+    setShowError(false);
+    onUpdateOrder(order.id, {
+      estadoPago: 'VERIFICADO',
+      comprobanteRef: refValue.trim(),
+    });
+  };
+
+  const handleReject = () => {
+    onUpdateOrder(order.id, {
+      estadoPago: 'RECHAZADO',
+      comprobanteRef: refValue.trim() || order.comprobanteRef,
+    });
+  };
+
+  return (
+    <div className="bg-purple-50/90 border border-purple-300 rounded-2xl p-3 space-y-2 mt-1">
+      <div className="flex items-center justify-between text-xs font-black text-purple-950">
+        <span className="flex items-center gap-1">
+          <CreditCard className="w-3.5 h-3.5 text-purple-600" />
+          <span>Validación de Soporte Bancario</span>
+        </span>
+        <span className="text-[10px] bg-purple-200 text-purple-900 font-extrabold px-2 py-0.5 rounded-full uppercase">
+          Obligatorio
+        </span>
+      </div>
+
+      <div>
+        <label className="block text-[11px] font-bold text-slate-700 mb-1">
+          Referencia de Pago / Comprobante: <span className="text-rose-600 font-black">*</span>
+        </label>
+        <input
+          type="text"
+          value={refValue}
+          onChange={(e) => {
+            setRefValue(e.target.value);
+            if (showError && e.target.value.trim()) setShowError(false);
+          }}
+          placeholder="Ej. M123456 / Ref. Nequi o Transf."
+          className={`w-full text-xs font-mono font-bold px-3 py-2 rounded-xl border bg-white outline-none transition ${
+            showError
+              ? 'border-rose-400 ring-2 ring-rose-200'
+              : !isRefValid
+              ? 'border-purple-300 focus:border-purple-500 focus:ring-2 focus:ring-purple-200'
+              : 'border-emerald-400 bg-emerald-50/40 text-emerald-950'
+          }`}
+        />
+        {showError && (
+          <p className="text-[10px] text-rose-600 font-black mt-1 flex items-center gap-1">
+            ⚠️ Debe ingresar la referencia del comprobante antes de validar.
+          </p>
+        )}
+      </div>
+
+      <div className="flex items-center gap-2 pt-0.5">
+        <button
+          type="button"
+          onClick={handleValidate}
+          disabled={!isRefValid}
+          className={`flex-1 py-2 rounded-xl text-xs font-black transition flex items-center justify-center gap-1.5 shadow-sm ${
+            isRefValid
+              ? 'bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer active:scale-95'
+              : 'bg-slate-200 text-slate-400 cursor-not-allowed opacity-75'
+          }`}
+          title={isRefValid ? 'Aprobar y Validar Pago' : 'Ingrese la referencia para habilitar el botón'}
+        >
+          <Check className="w-3.5 h-3.5" />
+          <span>Validar Pago</span>
+        </button>
+        <button
+          type="button"
+          onClick={handleReject}
+          className="py-2 px-3 bg-rose-100 hover:bg-rose-200 text-rose-800 rounded-xl text-xs font-black transition active:scale-95"
+          title="Rechazar Pago"
+        >
+          Rechazar
+        </button>
+      </div>
+
+      {!isRefValid && (
+        <p className="text-[10px] text-slate-500 italic text-center font-medium">
+          🔒 El botón de validar se habilitará al ingresar la referencia.
+        </p>
+      )}
+    </div>
+  );
+}
+
 const isSameDayColombia = (dateInput: string | Date | undefined): boolean => {
   if (!dateInput) return false;
   try {
@@ -926,23 +1034,12 @@ export function AdminDashboard({
                     </select>
                   </div>
 
-                  {/* Nequi Admin Verification Controls */}
+                  {/* Nequi Admin Verification Controls with Mandatory Reference */}
                   {isNequiPending && (
-                    <div className="flex items-center gap-2 pt-1">
-                      <button
-                        onClick={() => onUpdateOrder(order.id, { estadoPago: 'VERIFICADO' })}
-                        className="flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 shadow-sm"
-                      >
-                        <Check className="w-3.5 h-3.5" /> Aprobar Pago
-                      </button>
-                      <button
-                        onClick={() => onUpdateOrder(order.id, { estadoPago: 'RECHAZADO' })}
-                        className="py-1.5 px-2 bg-rose-100 text-rose-700 hover:bg-rose-200 rounded-lg text-xs font-bold transition"
-                        title="Rechazar Pago"
-                      >
-                        Rechazar
-                      </button>
-                    </div>
+                    <OrderPaymentValidationControl
+                      order={order}
+                      onUpdateOrder={onUpdateOrder}
+                    />
                   )}
 
                   {/* Verified Payment Status & Revert Option */}
@@ -950,7 +1047,7 @@ export function AdminDashboard({
                     <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-xl text-xs">
                       <span className="text-emerald-800 font-extrabold flex items-center gap-1.5">
                         <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                        <span>Pago Validado</span>
+                        <span>Pago Validado {order.comprobanteRef ? `(Ref: ${order.comprobanteRef})` : ''}</span>
                       </span>
                       <button
                         onClick={() => onUpdateOrder(order.id, { estadoPago: 'PENDIENTE' })}

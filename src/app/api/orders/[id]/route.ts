@@ -23,6 +23,7 @@ export async function PATCH(
       cantidadBotellones,
       montoTotal,
       precioUnitario,
+      items,
     } = body;
 
     const finalOperador = operadorNombre || session?.nombre || 'Administración';
@@ -34,6 +35,23 @@ export async function PATCH(
 
     if (!existingOrder) {
       return NextResponse.json({ error: 'Pedido no encontrado' }, { status: 404 });
+    }
+
+    // Validación estricta: Referencia obligatoria para validar pagos no en efectivo
+    const targetMetodoPago = metodoPago || existingOrder.metodoPago;
+    const isDigitalPayment =
+      targetMetodoPago === 'NEQUI' ||
+      targetMetodoPago === 'TRANSFERENCIA' ||
+      targetMetodoPago === 'PAGOMOVIL';
+
+    if (estadoPago === 'VERIFICADO' && isDigitalPayment) {
+      const finalRef = (comprobanteRef !== undefined ? comprobanteRef : existingOrder.comprobanteRef) || '';
+      if (!String(finalRef).trim()) {
+        return NextResponse.json(
+          { error: 'Es obligatorio ingresar la referencia o comprobante bancario antes de validar el pago.' },
+          { status: 400 }
+        );
+      }
     }
 
     const updateData: any = {};
@@ -87,8 +105,46 @@ export async function PATCH(
       updateData.numeroFactura = numeroFactura ? String(numeroFactura).trim() : null;
     }
 
-    // Synchronize Botellon OrderItem if cantidadBotellones changed
-    if (cantidadBotellones !== undefined && parseInt(cantidadBotellones, 10) >= 0) {
+    // Update individual OrderItems (allows drivers/admins to correct prices/quantities of ANY product)
+    let itemsUpdated = false;
+    if (items && Array.isArray(items) && items.length > 0) {
+      for (const itm of items) {
+        if (itm.id) {
+          const existingItem = existingOrder.items?.find((i) => i.id === itm.id);
+          if (existingItem) {
+            const newUnitPrice =
+              itm.precioUnitario !== undefined && itm.precioUnitario !== null && itm.precioUnitario >= 0
+                ? parseFloat(String(itm.precioUnitario))
+                : existingItem.precioUnitario;
+            const newQty =
+              itm.cantidad !== undefined && itm.cantidad !== null && itm.cantidad >= 0
+                ? parseInt(String(itm.cantidad), 10)
+                : existingItem.cantidad;
+
+            await db.orderItem.update({
+              where: { id: itm.id },
+              data: {
+                precioUnitario: newUnitPrice,
+                cantidad: newQty,
+                subtotal: newQty * newUnitPrice,
+              },
+            });
+            itemsUpdated = true;
+
+            const isStandardBotellon =
+              existingItem.nombreProducto.toUpperCase().includes('BOTELLON (20L)') ||
+              (existingItem.nombreProducto.toUpperCase().includes('BOTELLON') && !existingItem.nombreProducto.toUpperCase().includes('VC'));
+            if (isStandardBotellon) {
+              updateData.precioUnitario = newUnitPrice;
+              updateData.cantidadBotellones = newQty;
+            }
+          }
+        }
+      }
+    }
+
+    // Synchronize Botellon OrderItem if cantidadBotellones changed and not already updated via items
+    if (!itemsUpdated && cantidadBotellones !== undefined && parseInt(cantidadBotellones, 10) >= 0) {
       const newBotellonesQty = parseInt(cantidadBotellones, 10);
       updateData.cantidadBotellones = newBotellonesQty;
 
@@ -184,6 +240,9 @@ export async function PATCH(
     }
     if (notasEntrega) {
       auditDetails.push(`Nota: [${notasEntrega}]`);
+    }
+    if (itemsUpdated) {
+      auditDetails.push('Precios/cantidades de productos actualizados');
     }
 
     if (auditDetails.length > 0) {

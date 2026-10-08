@@ -39,6 +39,7 @@ interface DriverViewProps {
       cantidadBotellones?: number;
       montoTotal?: number;
       precioUnitario?: number;
+      items?: Array<{ id: number; precioUnitario: number; cantidad?: number }>;
     }
   ) => Promise<void>;
 }
@@ -51,6 +52,11 @@ export function DriverView({ driver, orders, onUpdateOrder }: DriverViewProps) {
   const [numeroRemision, setNumeroRemision] = useState('');
   const [notasEntrega, setNotasEntrega] = useState('');
 
+  // Editable items state for delivery modal (allows correcting price/qty of ANY product)
+  const [deliveryItems, setDeliveryItems] = useState<
+    Array<{ id: number; nombreProducto: string; cantidad: number; precioUnitario: number; subtotal: number }>
+  >([]);
+
   // Payment edit modal state (for correcting already delivered orders)
   const [selectedOrderForPaymentEdit, setSelectedOrderForPaymentEdit] = useState<any | null>(null);
   const [editMetodoPago, setEditMetodoPago] = useState<'EFECTIVO' | 'NEQUI' | 'TRANSFERENCIA' | 'CREDITO'>('EFECTIVO');
@@ -59,6 +65,59 @@ export function DriverView({ driver, orders, onUpdateOrder }: DriverViewProps) {
   const [editMotivo, setEditMotivo] = useState('');
   const [editCustomNota, setEditCustomNota] = useState('');
   const [editSuccessToast, setEditSuccessToast] = useState<string | null>(null);
+
+  // Editable items state for payment edit modal
+  const [editItems, setEditItems] = useState<
+    Array<{ id: number; nombreProducto: string; cantidad: number; precioUnitario: number; subtotal: number }>
+  >([]);
+
+  const updateDeliveryItemQty = (id: number, delta: number) => {
+    setDeliveryItems((prev) =>
+      prev.map((i) => {
+        if (i.id === id) {
+          const newQty = Math.max(1, i.cantidad + delta);
+          return { ...i, cantidad: newQty, subtotal: newQty * i.precioUnitario };
+        }
+        return i;
+      })
+    );
+  };
+
+  const updateDeliveryItemPrice = (id: number, newPrice: number) => {
+    const validPrice = Math.max(0, isNaN(newPrice) ? 0 : newPrice);
+    setDeliveryItems((prev) =>
+      prev.map((i) => {
+        if (i.id === id) {
+          return { ...i, precioUnitario: validPrice, subtotal: i.cantidad * validPrice };
+        }
+        return i;
+      })
+    );
+  };
+
+  const updateEditItemQty = (id: number, delta: number) => {
+    setEditItems((prev) =>
+      prev.map((i) => {
+        if (i.id === id) {
+          const newQty = Math.max(1, i.cantidad + delta);
+          return { ...i, cantidad: newQty, subtotal: newQty * i.precioUnitario };
+        }
+        return i;
+      })
+    );
+  };
+
+  const updateEditItemPrice = (id: number, newPrice: number) => {
+    const validPrice = Math.max(0, isNaN(newPrice) ? 0 : newPrice);
+    setEditItems((prev) =>
+      prev.map((i) => {
+        if (i.id === id) {
+          return { ...i, precioUnitario: validPrice, subtotal: i.cantidad * validPrice };
+        }
+        return i;
+      })
+    );
+  };
   
   // Rejection modal state
   const [selectedOrderForRejection, setSelectedOrderForRejection] = useState<any | null>(null);
@@ -159,7 +218,27 @@ export function DriverView({ driver, orders, onUpdateOrder }: DriverViewProps) {
 
   const openDeliveryModal = (order: any) => {
     setSelectedOrderForDelivery(order);
-    const botellonItem = order.items?.find(
+    const initialItems =
+      order.items && order.items.length > 0
+        ? order.items.map((i: any) => ({
+            id: i.id,
+            nombreProducto: i.nombreProducto,
+            cantidad: i.cantidad,
+            precioUnitario: i.precioUnitario,
+            subtotal: i.subtotal || i.cantidad * i.precioUnitario,
+          }))
+        : [
+            {
+              id: 0,
+              nombreProducto: 'BOTELLON (20L)',
+              cantidad: order.cantidadBotellones || 1,
+              precioUnitario: order.precioUnitario || 10000,
+              subtotal: (order.cantidadBotellones || 1) * (order.precioUnitario || 10000),
+            },
+          ];
+    setDeliveryItems(initialItems);
+
+    const botellonItem = initialItems.find(
       (i: any) =>
         i.nombreProducto.toUpperCase().includes('BOTELLON (20L)') ||
         (i.nombreProducto.toUpperCase().includes('BOTELLON') && !i.nombreProducto.toUpperCase().includes('VC'))
@@ -175,33 +254,32 @@ export function DriverView({ driver, orders, onUpdateOrder }: DriverViewProps) {
     e.preventDefault();
     if (!selectedOrderForDelivery) return;
 
-    const botellonItem = selectedOrderForDelivery.items?.find(
+    const finalTotal = deliveryItems.reduce((sum, i) => sum + (i.cantidad * i.precioUnitario), 0);
+    const botellonItem = deliveryItems.find(
       (i: any) =>
         i.nombreProducto.toUpperCase().includes('BOTELLON (20L)') ||
         (i.nombreProducto.toUpperCase().includes('BOTELLON') && !i.nombreProducto.toUpperCase().includes('VC'))
     );
-    const hasBotellon = Boolean(botellonItem) || (!selectedOrderForDelivery.items?.length);
-    const botellonUnitPrice = botellonItem?.precioUnitario || selectedOrderForDelivery.precioUnitario || 7000;
-    const otherItems = selectedOrderForDelivery.items
-      ? selectedOrderForDelivery.items.filter((i: any) => i.id !== botellonItem?.id)
-      : [];
-    const otherItemsTotal = otherItems.reduce((sum: number, i: any) => sum + (i.subtotal || i.cantidad * i.precioUnitario), 0);
-
-    const finalTotal = hasBotellon
-      ? (customBottles * botellonUnitPrice) + otherItemsTotal
-      : (otherItemsTotal > 0 ? otherItemsTotal : (selectedOrderForDelivery.montoTotal || 0));
+    const botellonesCount = botellonItem ? botellonItem.cantidad : (selectedOrderForDelivery.cantidadBotellones || 0);
+    const botellonPrice = botellonItem ? botellonItem.precioUnitario : (selectedOrderForDelivery.precioUnitario || 10000);
 
     setIsSubmitting(true);
     try {
       await onUpdateOrder(selectedOrderForDelivery.id, {
         estadoEntrega: 'ENTREGADO',
-        cantidadBotellones: hasBotellon ? customBottles : selectedOrderForDelivery.cantidadBotellones,
+        cantidadBotellones: botellonesCount,
+        precioUnitario: botellonPrice,
         montoTotal: finalTotal,
         metodoPago,
-        estadoPago: metodoPago === 'EFECTIVO' ? 'VERIFICADO' : metodoPago === 'CREDITO' ? 'PENDIENTE' : 'PENDIENTE',
-        comprobanteRef: metodoPago === 'NEQUI' || metodoPago === 'TRANSFERENCIA' ? comprobanteRef : undefined,
+        estadoPago: metodoPago === 'EFECTIVO' ? 'VERIFICADO' : 'PENDIENTE',
+        comprobanteRef: comprobanteRef.trim() || undefined,
         numeroRemision: numeroRemision.trim() || undefined,
         notasEntrega,
+        items: deliveryItems.filter((i) => i.id > 0).map((i) => ({
+          id: i.id,
+          cantidad: i.cantidad,
+          precioUnitario: i.precioUnitario,
+        })),
       });
       setSelectedOrderForDelivery(null);
     } catch (err) {
@@ -264,6 +342,25 @@ export function DriverView({ driver, orders, onUpdateOrder }: DriverViewProps) {
 
   const openPaymentEditModal = (order: any) => {
     setSelectedOrderForPaymentEdit(order);
+    const initialItems =
+      order.items && order.items.length > 0
+        ? order.items.map((i: any) => ({
+            id: i.id,
+            nombreProducto: i.nombreProducto,
+            cantidad: i.cantidad,
+            precioUnitario: i.precioUnitario,
+            subtotal: i.subtotal || i.cantidad * i.precioUnitario,
+          }))
+        : [
+            {
+              id: 0,
+              nombreProducto: 'BOTELLON (20L)',
+              cantidad: order.cantidadBotellones || 1,
+              precioUnitario: order.precioUnitario || 10000,
+              subtotal: (order.cantidadBotellones || 1) * (order.precioUnitario || 10000),
+            },
+          ];
+    setEditItems(initialItems);
     setEditMetodoPago((order.metodoPago as any) || 'EFECTIVO');
     setEditComprobanteRef(order.comprobanteRef || '');
     setEditNumeroRemision(order.numeroRemision || '');
@@ -277,6 +374,15 @@ export function DriverView({ driver, orders, onUpdateOrder }: DriverViewProps) {
 
     setIsSubmitting(true);
     try {
+      const finalTotal = editItems.reduce((sum, i) => sum + (i.cantidad * i.precioUnitario), 0);
+      const botellonItem = editItems.find(
+        (i: any) =>
+          i.nombreProducto.toUpperCase().includes('BOTELLON (20L)') ||
+          (i.nombreProducto.toUpperCase().includes('BOTELLON') && !i.nombreProducto.toUpperCase().includes('VC'))
+      );
+      const botellonesCount = botellonItem ? botellonItem.cantidad : selectedOrderForPaymentEdit.cantidadBotellones;
+      const botellonPrice = botellonItem ? botellonItem.precioUnitario : selectedOrderForPaymentEdit.precioUnitario;
+
       const newEstadoPago = editMetodoPago === 'EFECTIVO' ? 'VERIFICADO' : 'PENDIENTE';
       const motivoText = editMotivo ? `Motivo: ${editMotivo}` : '';
       const notaText = editCustomNota.trim() ? `Obs: ${editCustomNota.trim()}` : '';
@@ -285,15 +391,23 @@ export function DriverView({ driver, orders, onUpdateOrder }: DriverViewProps) {
       await onUpdateOrder(selectedOrderForPaymentEdit.id, {
         metodoPago: editMetodoPago,
         estadoPago: newEstadoPago,
-        comprobanteRef: editMetodoPago === 'NEQUI' || editMetodoPago === 'TRANSFERENCIA' ? editComprobanteRef.trim() : undefined,
+        comprobanteRef: editComprobanteRef.trim() || undefined,
         numeroRemision: editNumeroRemision.trim() || undefined,
         notasEntrega: auditNote,
         operadorNombre: driver.nombre,
+        montoTotal: finalTotal,
+        cantidadBotellones: botellonesCount,
+        precioUnitario: botellonPrice,
+        items: editItems.filter((i) => i.id > 0).map((i) => ({
+          id: i.id,
+          cantidad: i.cantidad,
+          precioUnitario: i.precioUnitario,
+        })),
       });
 
       const updatedOrderNum = selectedOrderForPaymentEdit.numeroPedido;
       setSelectedOrderForPaymentEdit(null);
-      setEditSuccessToast(`✅ Pago del Pedido #${updatedOrderNum} actualizado correctamente a ${editMetodoPago}`);
+      setEditSuccessToast(`✅ Pedido #${updatedOrderNum} y productos actualizados correctamente.`);
       setTimeout(() => setEditSuccessToast(null), 4000);
     } catch (err) {
       console.error('Error al modificar pago:', err);
@@ -625,7 +739,7 @@ export function DriverView({ driver, orders, onUpdateOrder }: DriverViewProps) {
                         }`}
                       >
                         <CheckCircle2 className="w-5 h-5" />
-                        <span>✅ Entregar / Modificar Botellones</span>
+                        <span>✅ Finalizar Entrega / Ajustar Precios</span>
                       </button>
                     </div>
 
@@ -734,7 +848,7 @@ export function DriverView({ driver, orders, onUpdateOrder }: DriverViewProps) {
                       className="w-full py-2.5 px-3 bg-white hover:bg-sky-100/80 text-sky-900 border-2 border-sky-400/90 rounded-2xl font-black text-xs transition flex items-center justify-center gap-2 active:scale-[0.98] shadow-xs"
                     >
                       <CreditCard className="w-4 h-4 text-sky-600" />
-                      <span>✏️ Modificar / Corregir Pago</span>
+                      <span>✏️ Modificar Pago o Precios</span>
                     </button>
                   )}
                 </div>
@@ -747,9 +861,9 @@ export function DriverView({ driver, orders, onUpdateOrder }: DriverViewProps) {
       {/* Payment Modification Modal for Drivers */}
       {selectedOrderForPaymentEdit && (
         <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in duration-150 border border-slate-200 my-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-150 border border-slate-200 my-auto">
             {/* Modal Header */}
-            <div className="bg-gradient-to-r from-sky-600 to-blue-700 p-5 text-white flex items-center justify-between">
+            <div className="bg-gradient-to-r from-sky-600 to-blue-700 p-5 text-white flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2">
                 <CreditCard className="w-6 h-6" />
                 <div>
@@ -766,7 +880,7 @@ export function DriverView({ driver, orders, onUpdateOrder }: DriverViewProps) {
               </button>
             </div>
 
-            <form onSubmit={handleConfirmPaymentEdit} className="p-5 space-y-4">
+            <form onSubmit={handleConfirmPaymentEdit} className="p-5 space-y-4 overflow-y-auto">
               {/* Order Info */}
               <div className="bg-sky-50/80 p-3.5 rounded-2xl border border-sky-200 text-slate-900 text-sm">
                 <div className="flex items-center justify-between mb-1">
@@ -787,6 +901,114 @@ export function DriverView({ driver, orders, onUpdateOrder }: DriverViewProps) {
                       : selectedOrderForPaymentEdit.metodoPago === 'EFECTIVO'
                       ? '💵 Efectivo'
                       : '📲 Nequi / Transf'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Product Breakdown & Price Edit Box */}
+              <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-3">
+                <div className="flex items-center justify-between pb-1 border-b border-slate-200 text-xs font-black text-slate-700">
+                  <span>📦 Corregir Productos y Precios</span>
+                  <span className="text-[10px] text-slate-500 font-medium">Toque para modificar</span>
+                </div>
+
+                <div className="space-y-2">
+                  {editItems.map((item) => {
+                    const isVC =
+                      item.nombreProducto.toUpperCase().includes('VC') ||
+                      item.nombreProducto.toUpperCase().includes('COMPLETA');
+                    return (
+                      <div
+                        key={item.id}
+                        className="bg-white p-3 rounded-2xl border border-slate-200 shadow-2xs space-y-2"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-extrabold text-xs text-slate-900 leading-tight">
+                            {item.nombreProducto}
+                          </span>
+                          <span className="text-xs font-black text-sky-700 font-mono">
+                            ${(item.cantidad * item.precioUnitario).toLocaleString('es-CO')} COP
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between gap-3 pt-1 border-t border-slate-100">
+                          {/* Cantidad Stepper */}
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[11px] font-bold text-slate-500">Cant:</span>
+                            <button
+                              type="button"
+                              onClick={() => updateEditItemQty(item.id, -1)}
+                              className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 font-black text-slate-800 flex items-center justify-center text-sm active:scale-95 transition"
+                            >
+                              -
+                            </button>
+                            <span className="w-6 text-center font-black text-sm text-slate-800 font-mono">
+                              {item.cantidad}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => updateEditItemQty(item.id, 1)}
+                              className="w-7 h-7 rounded-lg bg-sky-600 hover:bg-sky-700 font-black text-white flex items-center justify-center text-sm shadow-2xs active:scale-95 transition"
+                            >
+                              +
+                            </button>
+                          </div>
+
+                          {/* Precio Unitario Editable */}
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[11px] font-bold text-slate-500">Precio c/u:</span>
+                            <div className="relative">
+                              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">
+                                $
+                              </span>
+                              <input
+                                type="number"
+                                min="0"
+                                step="500"
+                                value={item.precioUnitario}
+                                onChange={(e) =>
+                                  updateEditItemPrice(item.id, parseFloat(e.target.value) || 0)
+                                }
+                                className="w-24 pl-5 pr-2 py-1 text-xs font-extrabold text-slate-800 border-2 border-slate-200 rounded-xl focus:border-sky-500 focus:ring-1 focus:ring-sky-200 outline-none text-right font-mono bg-slate-50 focus:bg-white transition"
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Quick Price Buttons */}
+                        <div className="flex items-center gap-1.5 pt-0.5">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase">Tarifas:</span>
+                          <div className="flex items-center gap-1 flex-wrap">
+                            {(isVC ? [40000, 35000, 10000] : [10000, 7000, 8000, 9000]).map((preset) => (
+                              <button
+                                key={preset}
+                                type="button"
+                                onClick={() => updateEditItemPrice(item.id, preset)}
+                                className={`text-[10px] px-2 py-0.5 rounded-lg font-bold border transition ${
+                                  item.precioUnitario === preset
+                                    ? 'bg-sky-600 text-white border-sky-600 shadow-2xs'
+                                    : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'
+                                }`}
+                              >
+                                ${(preset / 1000)}k
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Nuevo Total Recalculado */}
+                <div className="flex items-center justify-between pt-2.5 border-t-2 border-slate-300 text-xs font-black">
+                  <span className="text-slate-700 text-sm">Nuevo Total:</span>
+                  <span className="text-base text-sky-900 font-black bg-sky-100 px-3 py-1 rounded-xl border border-sky-300">
+                    $
+                    {editItems
+                      .reduce((sum, i) => sum + i.cantidad * i.precioUnitario, 0)
+                      .toLocaleString('es-CO')}{' '}
+                    COP
                   </span>
                 </div>
               </div>
@@ -938,9 +1160,9 @@ export function DriverView({ driver, orders, onUpdateOrder }: DriverViewProps) {
       {/* Delivery Finalization Modal */}
       {selectedOrderForDelivery && (
         <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in duration-150 border border-slate-200 my-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-150 border border-slate-200 my-auto">
             {/* Modal Header */}
-            <div className="bg-gradient-to-r from-emerald-600 to-teal-700 p-5 text-white flex items-center justify-between">
+            <div className="bg-gradient-to-r from-emerald-600 to-teal-700 p-5 text-white flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-6 h-6" />
                 <h3 className="font-black text-lg">Finalizar Entrega</h3>
@@ -953,7 +1175,7 @@ export function DriverView({ driver, orders, onUpdateOrder }: DriverViewProps) {
               </button>
             </div>
 
-            <form onSubmit={handleConfirmDelivery} className="p-5 space-y-4">
+            <form onSubmit={handleConfirmDelivery} className="p-5 space-y-4 overflow-y-auto">
               {/* Order summary box */}
               <div className="bg-emerald-50/80 p-3.5 rounded-2xl border border-emerald-200 text-emerald-950 text-sm">
                 <p className="font-black text-base">{selectedOrderForDelivery.cliente.nombre}</p>
@@ -962,98 +1184,113 @@ export function DriverView({ driver, orders, onUpdateOrder }: DriverViewProps) {
                 </p>
               </div>
 
-              {/* Product Breakdown Box */}
-              {(() => {
-                const botellonItem = selectedOrderForDelivery.items?.find(
-                  (i: any) =>
-                    i.nombreProducto.toUpperCase().includes('BOTELLON (20L)') ||
-                    (i.nombreProducto.toUpperCase().includes('BOTELLON') && !i.nombreProducto.toUpperCase().includes('VC'))
-                );
-                const hasBotellonItem = Boolean(botellonItem) || (!selectedOrderForDelivery.items?.length);
-                const botellonUnitPrice = botellonItem?.precioUnitario || selectedOrderForDelivery.precioUnitario || 7000;
-                const additionalItems = selectedOrderForDelivery.items
-                  ? selectedOrderForDelivery.items.filter((i: any) => i.id !== botellonItem?.id)
-                  : [];
-                const additionalItemsTotal = additionalItems.reduce((sum: number, item: any) => sum + (item.subtotal || item.cantidad * item.precioUnitario), 0);
-                const calculatedDeliveryTotal = hasBotellonItem
-                  ? (customBottles * botellonUnitPrice) + additionalItemsTotal
-                  : (additionalItemsTotal > 0 ? additionalItemsTotal : (selectedOrderForDelivery.montoTotal || 0));
+              {/* Product Breakdown Box (Multi-product price & qty editor) */}
+              <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-3">
+                <div className="flex items-center justify-between pb-1 border-b border-slate-200 text-xs font-black text-slate-700">
+                  <span>📦 Productos a Entregar (Ajustar si varió)</span>
+                  <span className="text-[10px] text-slate-500 font-medium">Toque para modificar</span>
+                </div>
 
-                return (
-                  <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-3">
-                    <div className="flex items-center justify-between pb-1 border-b border-slate-200 text-xs font-black text-slate-700">
-                      <span>📦 Detalle del Pedido</span>
-                      <span>Subtotal</span>
-                    </div>
-
-                    {/* Botellones with Stepper (if present) */}
-                    {hasBotellonItem && (
-                      <div className="space-y-2">
+                <div className="space-y-2">
+                  {deliveryItems.map((item) => {
+                    const isVC =
+                      item.nombreProducto.toUpperCase().includes('VC') ||
+                      item.nombreProducto.toUpperCase().includes('COMPLETA');
+                    return (
+                      <div
+                        key={item.id}
+                        className="bg-white p-3 rounded-2xl border border-slate-200 shadow-2xs space-y-2"
+                      >
                         <div className="flex items-center justify-between">
-                          <div>
-                            <span className="text-xs font-black text-slate-900 block">💧 BOTELLÓN (20L)</span>
-                            <span className="text-[10px] text-slate-500 font-medium">
-                              ${botellonUnitPrice.toLocaleString('es-CO')} c/u
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2">
+                          <span className="font-extrabold text-xs text-slate-900 leading-tight">
+                            {item.nombreProducto}
+                          </span>
+                          <span className="text-xs font-black text-emerald-700 font-mono">
+                            ${(item.cantidad * item.precioUnitario).toLocaleString('es-CO')} COP
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between gap-3 pt-1 border-t border-slate-100">
+                          {/* Cantidad Stepper */}
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[11px] font-bold text-slate-500">Cant:</span>
                             <button
                               type="button"
-                              onClick={() => setCustomBottles(Math.max(1, customBottles - 1))}
-                              className="w-9 h-9 rounded-xl bg-white border border-slate-300 font-black text-slate-800 hover:bg-slate-100 flex items-center justify-center text-lg active:scale-95 shadow-xs"
+                              onClick={() => updateDeliveryItemQty(item.id, -1)}
+                              className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 font-black text-slate-800 flex items-center justify-center text-sm active:scale-95 transition"
                             >
                               -
                             </button>
-                            <span className="w-8 text-center font-black text-lg text-emerald-700 font-mono">
-                              {customBottles}
+                            <span className="w-6 text-center font-black text-sm text-slate-800 font-mono">
+                              {item.cantidad}
                             </span>
                             <button
                               type="button"
-                              onClick={() => setCustomBottles(customBottles + 1)}
-                              className="w-9 h-9 rounded-xl bg-emerald-600 font-black text-white hover:bg-emerald-700 flex items-center justify-center text-lg shadow-sm active:scale-95"
+                              onClick={() => updateDeliveryItemQty(item.id, 1)}
+                              className="w-7 h-7 rounded-lg bg-emerald-600 hover:bg-emerald-700 font-black text-white flex items-center justify-center text-sm shadow-2xs active:scale-95 transition"
                             >
                               +
                             </button>
                           </div>
-                        </div>
-                        <div className="text-right text-xs font-bold text-slate-700">
-                          Subtotal Botellones: ${(customBottles * botellonUnitPrice).toLocaleString('es-CO')}
-                        </div>
-                      </div>
-                    )}
 
-                    {/* Additional Products (Bandejas, Garrafas, etc.) */}
-                    {additionalItems.length > 0 && (
-                      <div className="space-y-1.5 pt-2 border-t border-slate-200">
-                        <span className="text-[11px] font-black text-slate-500 uppercase tracking-wider block">
-                          Productos Adicionales:
-                        </span>
-                        {additionalItems.map((item: any, idx: number) => (
-                          <div
-                            key={item.id || idx}
-                            className="flex items-center justify-between text-xs py-1.5 px-2.5 bg-white rounded-xl border border-slate-200"
-                          >
-                            <span className="font-extrabold text-slate-800">
-                              {item.cantidad}x {item.nombreProducto}
-                            </span>
-                            <span className="font-black text-slate-700">
-                              ${(item.subtotal || item.cantidad * item.precioUnitario).toLocaleString('es-CO')}
-                            </span>
+                          {/* Precio Unitario Editable */}
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[11px] font-bold text-slate-500">Precio c/u:</span>
+                            <div className="relative">
+                              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">
+                                $
+                              </span>
+                              <input
+                                type="number"
+                                min="0"
+                                step="500"
+                                value={item.precioUnitario}
+                                onChange={(e) =>
+                                  updateDeliveryItemPrice(item.id, parseFloat(e.target.value) || 0)
+                                }
+                                className="w-24 pl-5 pr-2 py-1 text-xs font-extrabold text-slate-800 border-2 border-slate-200 rounded-xl focus:border-emerald-500 focus:ring-1 focus:ring-emerald-200 outline-none text-right font-mono bg-slate-50 focus:bg-white transition"
+                              />
+                            </div>
                           </div>
-                        ))}
-                      </div>
-                    )}
+                        </div>
 
-                    {/* Grand Total Bar */}
-                    <div className="flex items-center justify-between pt-2.5 border-t-2 border-slate-300 text-xs font-black">
-                      <span className="text-slate-700 text-sm">Total a Cobrar:</span>
-                      <span className="text-lg text-emerald-800 font-black bg-emerald-100 px-3 py-1 rounded-xl border border-emerald-300">
-                        ${calculatedDeliveryTotal.toLocaleString('es-CO')} COP
-                      </span>
-                    </div>
-                  </div>
-                );
-              })()}
+                        {/* Quick Price Buttons */}
+                        <div className="flex items-center gap-1.5 pt-0.5">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase">Tarifas:</span>
+                          <div className="flex items-center gap-1 flex-wrap">
+                            {(isVC ? [40000, 35000, 10000] : [10000, 7000, 8000, 9000]).map((preset) => (
+                              <button
+                                key={preset}
+                                type="button"
+                                onClick={() => updateDeliveryItemPrice(item.id, preset)}
+                                className={`text-[10px] px-2 py-0.5 rounded-lg font-bold border transition ${
+                                  item.precioUnitario === preset
+                                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs'
+                                    : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'
+                                }`}
+                              >
+                                ${(preset / 1000)}k
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Grand Total Bar */}
+                <div className="flex items-center justify-between pt-2.5 border-t-2 border-slate-300 text-xs font-black">
+                  <span className="text-slate-700 text-sm">Total a Cobrar:</span>
+                  <span className="text-lg text-emerald-800 font-black bg-emerald-100 px-3 py-1 rounded-xl border border-emerald-300">
+                    $
+                    {deliveryItems
+                      .reduce((sum, i) => sum + i.cantidad * i.precioUnitario, 0)
+                      .toLocaleString('es-CO')}{' '}
+                    COP
+                  </span>
+                </div>
+              </div>
 
               {/* Forma de Pago */}
               <div>

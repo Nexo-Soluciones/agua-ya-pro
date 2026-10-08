@@ -160,6 +160,7 @@ export default function Home() {
       cantidadBotellones?: number;
       montoTotal?: number;
       precioUnitario?: number;
+      items?: Array<{ id: number; precioUnitario: number; cantidad?: number }>;
     }
   ) => {
     try {
