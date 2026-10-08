@@ -193,6 +193,31 @@ function OrderInvoiceControl({
   );
 }
 
+const isSameDayColombia = (dateInput: string | Date | undefined): boolean => {
+  if (!dateInput) return false;
+  try {
+    const d = new Date(dateInput);
+    if (isNaN(d.getTime())) return false;
+    const orderDateStr = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Bogota',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(d);
+
+    const todayDateStr = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Bogota',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(new Date());
+
+    return orderDateStr === todayDateStr;
+  } catch {
+    return false;
+  }
+};
+
 export function AdminDashboard({
   orders,
   drivers,
@@ -208,10 +233,25 @@ export function AdminDashboard({
   const [isManageDriversOpen, setIsManageDriversOpen] = useState(false);
   const [isAuditModalOpen, setIsAuditModalOpen] = useState(false);
 
-  // Active jornada orders (excluding CERRADO from active dispatch list)
-  const activeJornadaOrders = orders.filter((o) => o.estadoEntrega !== 'CERRADO');
-  const totalOrders = activeJornadaOrders.length;
-  const totalBottles = activeJornadaOrders.reduce((sum, o) => sum + o.cantidadBotellones, 0);
+  // Active jornada orders (excluding CERRADO and excluding rejected orders from past dates)
+  const activeJornadaOrders = orders.filter((o) => {
+    if (o.estadoEntrega === 'CERRADO') return false;
+    // Rejected / Cancelled orders must be strictly from TODAY
+    if (o.estadoEntrega === 'CANCELADO' || o.estadoEntrega === 'RECHAZADO') {
+      return isSameDayColombia(o.updatedAt || o.fechaCreacion);
+    }
+    return true;
+  });
+
+  // Active deliverable / delivered orders (pedidos a despachar o entregados hoy)
+  const deliverableOrders = activeJornadaOrders.filter(
+    (o) => o.estadoEntrega !== 'CANCELADO' && o.estadoEntrega !== 'RECHAZADO'
+  );
+
+  // Sinceración de Botellones Hoy: botellones de la jornada activa (no suma rechazados)
+  const totalBottles = deliverableOrders.reduce((sum, o) => sum + (o.cantidadBotellones || 0), 0);
+  const totalOrders = deliverableOrders.length;
+
   const pendingCount = activeJornadaOrders.filter((o) => o.estadoEntrega === 'PENDIENTE').length;
   const inTransitCount = activeJornadaOrders.filter((o) => o.estadoEntrega === 'EN_CAMINO').length;
   const deliveredCount = activeJornadaOrders.filter((o) => o.estadoEntrega === 'ENTREGADO').length;
@@ -227,9 +267,9 @@ export function AdminDashboard({
     (o) => (o.metodoPago === 'NEQUI' || o.metodoPago === 'TRANSFERENCIA' || o.metodoPago === 'PAGOMOVIL') && o.estadoPago === 'VERIFICADO'
   ).length;
 
-  // Rejected / Cancelled orders calculation
+  // Rejected / Cancelled orders calculation - ONLY if rejected on the SAME DAY (today)
   const rejectedOrders = activeJornadaOrders.filter(
-    (o) => o.estadoEntrega === 'CANCELADO' || o.estadoEntrega === 'RECHAZADO'
+    (o) => (o.estadoEntrega === 'CANCELADO' || o.estadoEntrega === 'RECHAZADO') && isSameDayColombia(o.updatedAt || o.fechaCreacion)
   );
   const rejectedCount = rejectedOrders.length;
   const rejectedBottles = rejectedOrders.reduce((sum, o) => sum + (o.cantidadBotellones || 0), 0);
@@ -259,12 +299,16 @@ export function AdminDashboard({
   // Filtered orders
   const filteredOrders = orders.filter((o) => {
     if (o.estadoEntrega === 'CERRADO') return false;
+    // Exclude rejected orders from past dates
+    if ((o.estadoEntrega === 'CANCELADO' || o.estadoEntrega === 'RECHAZADO') && !isSameDayColombia(o.updatedAt || o.fechaCreacion)) {
+      return false;
+    }
     if (activeFilter === 'PENDIENTE') return o.estadoEntrega === 'PENDIENTE';
     if (activeFilter === 'EN_CAMINO') return o.estadoEntrega === 'EN_CAMINO';
     if (activeFilter === 'ENTREGADO') return o.estadoEntrega === 'ENTREGADO';
     if (activeFilter === 'PROGRAMADO_MANANA') return o.estadoEntrega === 'PROGRAMADO_MANANA';
     if (activeFilter === 'RECHAZADOS')
-      return o.estadoEntrega === 'CANCELADO' || o.estadoEntrega === 'RECHAZADO';
+      return (o.estadoEntrega === 'CANCELADO' || o.estadoEntrega === 'RECHAZADO') && isSameDayColombia(o.updatedAt || o.fechaCreacion);
     if (activeFilter === 'PAGOS')
       return (o.metodoPago === 'NEQUI' || o.metodoPago === 'TRANSFERENCIA' || o.metodoPago === 'PAGOMOVIL') && o.estadoPago === 'PENDIENTE';
     if (activeFilter === 'PAGOS_VALIDADOS')

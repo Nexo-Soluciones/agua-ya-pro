@@ -5,10 +5,10 @@ export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({}));
 
-    // 1. Actualizar todos los pedidos con estado ENTREGADO a CERRADO para despejar la vista de despacho
+    // 1. Actualizar todos los pedidos con estado ENTREGADO, CANCELADO y RECHAZADO a CERRADO para despejar la vista de despacho
     const updateResult = await db.order.updateMany({
       where: {
-        estadoEntrega: 'ENTREGADO',
+        estadoEntrega: { in: ['ENTREGADO', 'CANCELADO', 'RECHAZADO'] },
       },
       data: {
         estadoEntrega: 'CERRADO',
