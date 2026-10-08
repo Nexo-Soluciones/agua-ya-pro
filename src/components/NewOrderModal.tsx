@@ -45,7 +45,7 @@ interface OrderCartItem {
 }
 
 const DEFAULT_PRODUCTS: ProductItem[] = [
-  { id: 1, nombre: 'BOTELLON (20L)', categoria: 'BOTELLONES', precioBase: 10000, icono: '💧', preciosDisponibles: '[10500, 10000, 9500, 9000, 8933, 8500, 8000, 7000, 6000, 5000, 0]' },
+  { id: 1, nombre: 'BOTELLON (20L)', categoria: 'BOTELLONES', precioBase: 10000, icono: '💧', preciosDisponibles: '[10000, 10500, 9500, 9000, 8933, 8500, 8000, 7000, 6000, 5000, 0]' },
   { id: 2, nombre: 'BOTELLON VC (Envase + Agua)', categoria: 'BOTELLONES', precioBase: 40000, icono: '🆕', preciosDisponibles: '[40000, 38000, 35000]' },
   { id: 3, nombre: 'BANDEJA 620 ML', categoria: 'BANDEJAS', precioBase: 15000, icono: '📦', preciosDisponibles: '[16000, 15000, 14000]' },
   { id: 4, nombre: 'BANDEJA 300 ML', categoria: 'BANDEJAS', precioBase: 14000, icono: '📦', preciosDisponibles: '[14000]' },
@@ -75,7 +75,7 @@ export function NewOrderModal({
   const [direccion, setDireccion] = useState('');
   const [barrioSector, setBarrioSector] = useState('');
   const [tipoCliente, setTipoCliente] = useState<'VIEJO' | 'NUEVO'>('VIEJO');
-  const [precioAcordadoBotellon, setPrecioAcordadoBotellon] = useState<number>(7000);
+  const [precioAcordadoBotellon, setPrecioAcordadoBotellon] = useState<number>(10000);
   const [notasUbicacion, setNotasUbicacion] = useState('');
   const [requiereFactura, setRequiereFactura] = useState(false);
   const [numeroFactura, setNumeroFactura] = useState('');
@@ -88,8 +88,8 @@ export function NewOrderModal({
       productoId: 1,
       nombreProducto: 'BOTELLON (20L)',
       cantidad: 1,
-      precioUnitario: 7000,
-      subtotal: 7000,
+      precioUnitario: 10000,
+      subtotal: 10000,
       categoria: 'BOTELLONES',
     },
   ]);
@@ -144,7 +144,7 @@ export function NewOrderModal({
     setDireccion(client.direccion);
     setBarrioSector(client.barrioSector || '');
     setTipoCliente(client.tipoCliente || 'VIEJO');
-    const agreedPrice = client.precioAcordado || (client.tipoCliente === 'NUEVO' ? 8000 : 7000);
+    const agreedPrice = client.precioAcordado || 10000;
     setPrecioAcordadoBotellon(agreedPrice);
     setNotasUbicacion(client.notasUbicacion || '');
     setRequiereFactura(Boolean(client.requiereFactura));
@@ -169,7 +169,7 @@ export function NewOrderModal({
     setDireccion('');
     setBarrioSector('');
     setTipoCliente('NUEVO');
-    setPrecioAcordadoBotellon(8000);
+    setPrecioAcordadoBotellon(10000);
     setNotasUbicacion('');
     setRequiereFactura(false);
     setNumeroFactura('');
@@ -179,8 +179,8 @@ export function NewOrderModal({
         productoId: 1,
         nombreProducto: 'BOTELLON (20L)',
         cantidad: 1,
-        precioUnitario: 8000,
-        subtotal: 8000,
+        precioUnitario: 10000,
+        subtotal: 10000,
         categoria: 'BOTELLONES',
       },
     ]);
@@ -267,7 +267,7 @@ export function NewOrderModal({
     }
 
     if (item.nombreProducto.includes('BOTELLON (20L)')) {
-      return [10500, 10000, 9500, 9000, 8933, 8500, 8000, 7000, 6000, 5000, 0];
+      return [10000, 10500, 9500, 9000, 8933, 8500, 8000, 7000, 6000, 5000, 0];
     }
     if (item.nombreProducto.includes('BOTELLON VC')) {
       return [40000, 38000, 35000];
@@ -461,7 +461,7 @@ export function NewOrderModal({
                       <span className={`text-[10px] px-2.5 py-1 rounded-full font-black uppercase shrink-0 ${
                         client.tipoCliente === 'VIEJO' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
                       }`}>
-                        {client.tipoCliente === 'VIEJO' ? `Frecuente ($${(client.precioAcordado || 7000).toLocaleString('es-CO')})` : 'Nuevo'}
+                        {client.tipoCliente === 'VIEJO' ? `Frecuente ($${(client.precioAcordado || 10000).toLocaleString('es-CO')})` : 'Nuevo'}
                       </span>
                     </div>
                   </button>

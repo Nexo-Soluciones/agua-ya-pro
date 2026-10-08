@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
       requiereFactura,
       numeroFactura,
     } = body;
-    const precio = precioAcordado !== undefined && precioAcordado !== null ? parseFloat(precioAcordado) : (tipoCliente === 'NUEVO' ? 8000 : 7000);
+    const precio = precioAcordado !== undefined && precioAcordado !== null ? parseFloat(precioAcordado) : 10000;
     const hasFactura = Boolean(requiereFactura);
     const numFactura = hasFactura && numeroFactura ? String(numeroFactura).trim() : null;
 

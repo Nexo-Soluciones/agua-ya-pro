@@ -109,8 +109,8 @@ export async function POST(req: NextRequest) {
       const cleanNotas = notasUbicacion ? String(notasUbicacion).trim() : '';
 
       const basePrice = requestUnitPrice !== undefined && requestUnitPrice !== null
-        ? Math.max(0, parseFloat(String(requestUnitPrice)) || 7000)
-        : (tipoCliente === 'NUEVO' ? 8000 : 7000);
+        ? Math.max(0, parseFloat(String(requestUnitPrice)) || 10000)
+        : 10000;
 
       // Upsert client to avoid unique constraint collisions on phone number
       const client = await db.client.upsert({
@@ -244,8 +244,8 @@ export async function POST(req: NextRequest) {
       // Fallback
       const qty = Math.max(1, parseInt(String(cantidadBotellones || '1'), 10) || 1);
       const unitPrice = requestUnitPrice !== undefined && requestUnitPrice !== null
-        ? Math.max(0, parseFloat(String(requestUnitPrice)) || 7000)
-        : (client.precioAcordado || (client.tipoCliente === 'NUEVO' ? 8000 : 7000));
+        ? Math.max(0, parseFloat(String(requestUnitPrice)) || 10000)
+        : (client.precioAcordado || 10000);
       calculatedTotal = qty * unitPrice;
       totalBotellonesQty = qty;
       summaryText = `${qty}x BOTELLON (20L)`;
@@ -278,7 +278,7 @@ export async function POST(req: NextRequest) {
         clienteId: targetClientId,
         repartidorId: finalRepartidorId,
         cantidadBotellones: totalBotellonesQty,
-        precioUnitario: orderItemsData[0]?.precioUnitario || 7000,
+        precioUnitario: orderItemsData[0]?.precioUnitario || 10000,
         montoTotal: calculatedTotal,
         resumenProductos: summaryText,
         metodoPago: metodoPago || 'EFECTIVO',

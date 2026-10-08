@@ -45,7 +45,7 @@ export function ClientDirectoryModal({
   const [direccion, setDireccion] = useState('');
   const [barrioSector, setBarrioSector] = useState('');
   const [tipoCliente, setTipoCliente] = useState<'VIEJO' | 'NUEVO'>('VIEJO');
-  const [precioAcordado, setPrecioAcordado] = useState<number>(7000);
+  const [precioAcordado, setPrecioAcordado] = useState<number>(10000);
   const [notasUbicacion, setNotasUbicacion] = useState('');
   const [requiereFactura, setRequiereFactura] = useState(false);
   const [numeroFactura, setNumeroFactura] = useState('');
@@ -103,7 +103,7 @@ export function ClientDirectoryModal({
     setDireccion(client.direccion || '');
     setBarrioSector(client.barrioSector || '');
     setTipoCliente(client.tipoCliente || 'VIEJO');
-    setPrecioAcordado(client.precioAcordado !== undefined && client.precioAcordado !== null ? client.precioAcordado : 7000);
+    setPrecioAcordado(client.precioAcordado !== undefined && client.precioAcordado !== null ? client.precioAcordado : 10000);
     setNotasUbicacion(client.notasUbicacion || '');
     setRequiereFactura(Boolean(client.requiereFactura));
     setNumeroFactura(client.numeroFactura || '');
@@ -120,7 +120,7 @@ export function ClientDirectoryModal({
     setDireccion('');
     setBarrioSector('');
     setTipoCliente('VIEJO');
-    setPrecioAcordado(7000);
+    setPrecioAcordado(10000);
     setNotasUbicacion('');
     setRequiereFactura(false);
     setNumeroFactura('');
@@ -394,7 +394,7 @@ export function ClientDirectoryModal({
                     const val = e.target.value as 'VIEJO' | 'NUEVO';
                     setTipoCliente(val);
                     if (!selectedClientToEdit) {
-                      setPrecioAcordado(val === 'NUEVO' ? 8000 : 7000);
+                      setPrecioAcordado(10000);
                     }
                   }}
                   className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
@@ -415,8 +415,8 @@ export function ClientDirectoryModal({
                   onChange={(e) => setPrecioAcordado(Number(e.target.value))}
                   className="w-full px-3.5 py-2.5 bg-sky-50/70 border border-sky-300 rounded-xl text-sm font-black text-sky-900 focus:outline-none focus:ring-2 focus:ring-sky-500 shadow-xs"
                 >
-                  <option value={10500}>$10.500 COP</option>
                   <option value={10000}>$10.000 COP</option>
+                  <option value={10500}>$10.500 COP</option>
                   <option value={9500}>$9.500 COP</option>
                   <option value={9000}>$9.000 COP</option>
                   <option value={8933}>$8.933 COP</option>
@@ -642,7 +642,7 @@ export function ClientDirectoryModal({
                           {client.direccion} {client.barrioSector ? `(${client.barrioSector})` : ''}
                         </span>
                         <span className="font-bold text-sky-700 bg-sky-50 px-2 py-0.5 rounded-md border border-sky-200/60">
-                          Tarifa: ${(client.precioAcordado || 7000).toLocaleString('es-CO')}
+                          Tarifa: ${(client.precioAcordado || 10000).toLocaleString('es-CO')}
                         </span>
                       </div>
 

@@ -15,7 +15,7 @@ export function NewClientModal({ isOpen, onClose, onClientCreated }: NewClientMo
   const [direccion, setDireccion] = useState('');
   const [barrioSector, setBarrioSector] = useState('');
   const [tipoCliente, setTipoCliente] = useState<'VIEJO' | 'NUEVO'>('VIEJO');
-  const [precioAcordado, setPrecioAcordado] = useState<number>(7000);
+  const [precioAcordado, setPrecioAcordado] = useState<number>(10000);
   const [notasUbicacion, setNotasUbicacion] = useState('');
   const [requiereFactura, setRequiereFactura] = useState(false);
   const [numeroFactura, setNumeroFactura] = useState('');
@@ -69,7 +69,7 @@ export function NewClientModal({ isOpen, onClose, onClientCreated }: NewClientMo
         setDireccion('');
         setBarrioSector('');
         setTipoCliente('VIEJO');
-        setPrecioAcordado(7000);
+        setPrecioAcordado(10000);
         setNotasUbicacion('');
         setRequiereFactura(false);
         setNumeroFactura('');
@@ -162,7 +162,7 @@ export function NewClientModal({ isOpen, onClose, onClientCreated }: NewClientMo
                 onChange={(e) => {
                   const val = e.target.value as 'VIEJO' | 'NUEVO';
                   setTipoCliente(val);
-                  setPrecioAcordado(val === 'NUEVO' ? 8000 : 7000);
+                  setPrecioAcordado(10000);
                 }}
                 className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500"
               >
@@ -183,8 +183,8 @@ export function NewClientModal({ isOpen, onClose, onClientCreated }: NewClientMo
               onChange={(e) => setPrecioAcordado(Number(e.target.value))}
               className="w-full px-3.5 py-2.5 bg-white border border-sky-300 rounded-xl text-sm font-black text-sky-900 focus:outline-none focus:ring-2 focus:ring-sky-500 shadow-sm"
             >
-              <option value={10500}>$10.500 COP</option>
               <option value={10000}>$10.000 COP</option>
+              <option value={10500}>$10.500 COP</option>
               <option value={9500}>$9.500 COP</option>
               <option value={9000}>$9.000 COP</option>
               <option value={8933}>$8.933 COP</option>
