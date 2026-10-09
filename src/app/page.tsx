@@ -138,11 +138,31 @@ export default function Home() {
     }
   }, []);
 
-  // Initial load and periodic polling (every 6 seconds)
+  // Initial load and smart periodic polling (pauses when tab is hidden to save bandwidth)
   useEffect(() => {
     fetchData(true);
-    const interval = setInterval(() => fetchData(false), 6000);
-    return () => clearInterval(interval);
+
+    const interval = setInterval(() => {
+      // Do not poll if tab is hidden or minimized
+      if (typeof document !== 'undefined' && document.hidden) {
+        return;
+      }
+      fetchData(false);
+    }, 12000); // 12 seconds (50% reduction in API calls while keeping real-time responsiveness)
+
+    // Immediate fetch when user returns to this tab
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        fetchData(false);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [fetchData]);
 
   const handleUpdateOrder = async (
@@ -189,14 +209,9 @@ export default function Home() {
 
   return (
     <div className="min-h-screen relative flex flex-col font-sans overflow-x-hidden">
-      {/* Crystalline Water Animated Background with Glassmorphism */}
+      {/* Crystalline Water Animated Background with Glassmorphism (Pure CSS, 0 KB bandwidth) */}
       <div className="water-bg-container">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/images/water-bg.jpg"
-          alt="Water Background"
-          className="water-bg-image"
-        />
+        <div className="water-bg-gradient" />
         <div className="water-bg-overlay" />
         <div className="water-wave-1" />
         <div className="water-wave-2" />
