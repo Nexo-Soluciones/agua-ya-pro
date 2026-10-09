@@ -36,7 +36,11 @@ export async function GET(
       return NextResponse.json({ error: 'Cliente no encontrado' }, { status: 404 });
     }
 
-    return NextResponse.json(client);
+    return NextResponse.json(client, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=10, stale-while-revalidate=60',
+      },
+    });
   } catch (error: any) {
     console.error('Error fetching client by ID:', error);
     return NextResponse.json(

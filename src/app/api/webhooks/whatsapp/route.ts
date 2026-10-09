@@ -77,8 +77,13 @@ export async function POST(req: NextRequest) {
       assignedDriverName = sortedDrivers[0].nombre;
     }
 
-    const orderCount = await db.order.count();
-    const numeroPedido = 1001 + orderCount;
+    // 4. Calculate unique and strictly increasing numeroPedido using O(1) B-tree index lookup
+    const lastOrder = await db.order.findFirst({
+      orderBy: { id: 'desc' },
+      select: { numeroPedido: true, id: true },
+    });
+    const lastNum = lastOrder?.numeroPedido || 1000;
+    const numeroPedido = Math.max(lastNum + 1, (lastOrder?.id || 0) + 1001);
 
     const newOrder = await db.order.create({
       data: {

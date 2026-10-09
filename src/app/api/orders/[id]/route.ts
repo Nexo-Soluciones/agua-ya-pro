@@ -105,9 +105,11 @@ export async function PATCH(
       updateData.numeroFactura = numeroFactura ? String(numeroFactura).trim() : null;
     }
 
-    // Update individual OrderItems (allows drivers/admins to correct prices/quantities of ANY product)
+    // Update individual OrderItems in parallel (allows drivers/admins to correct prices/quantities of ANY product)
     let itemsUpdated = false;
     if (items && Array.isArray(items) && items.length > 0) {
+      const updatePromises: Promise<any>[] = [];
+
       for (const itm of items) {
         if (itm.id) {
           const existingItem = existingOrder.items?.find((i) => i.id === itm.id);
@@ -121,14 +123,16 @@ export async function PATCH(
                 ? parseInt(String(itm.cantidad), 10)
                 : existingItem.cantidad;
 
-            await db.orderItem.update({
-              where: { id: itm.id },
-              data: {
-                precioUnitario: newUnitPrice,
-                cantidad: newQty,
-                subtotal: newQty * newUnitPrice,
-              },
-            });
+            updatePromises.push(
+              db.orderItem.update({
+                where: { id: itm.id },
+                data: {
+                  precioUnitario: newUnitPrice,
+                  cantidad: newQty,
+                  subtotal: newQty * newUnitPrice,
+                },
+              })
+            );
             itemsUpdated = true;
 
             const isStandardBotellon =
@@ -140,6 +144,10 @@ export async function PATCH(
             }
           }
         }
+      }
+
+      if (updatePromises.length > 0) {
+        await Promise.all(updatePromises);
       }
     }
 

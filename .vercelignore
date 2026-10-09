@@ -1,0 +1,12 @@
+.git
+.next
+.vercel
+node_modules
+*.xlsx
+*.docx
+*.mp4
+*.jpeg
+*.jpg
+archive_media/
+respaldo_*.json
+scripts/

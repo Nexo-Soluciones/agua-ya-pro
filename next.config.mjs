@@ -1,6 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  compress: true,
+  swcMinify: true,
+  productionBrowserSourceMaps: false,
+  poweredByHeader: false,
   async headers() {
     return [
       {
