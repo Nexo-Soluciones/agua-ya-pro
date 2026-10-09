@@ -8,15 +8,35 @@ export async function GET() {
   try {
     const drivers = await db.user.findMany({
       where: { rol: 'REPARTIDOR', estado: 'ACTIVO' },
-      include: {
+      select: {
+        id: true,
+        nombre: true,
+        telefono: true,
+        rol: true,
+        estado: true,
+        lat: true,
+        lng: true,
+        speed: true,
+        heading: true,
+        lastLocationUpdate: true,
         pedidosAsignados: {
           where: {
             estadoEntrega: {
               in: ['PENDIENTE', 'EN_CAMINO'],
             },
           },
-          include: {
-            cliente: true,
+          take: 3,
+          select: {
+            id: true,
+            numeroPedido: true,
+            estadoEntrega: true,
+            cliente: {
+              select: {
+                id: true,
+                nombre: true,
+                direccion: true,
+              },
+            },
           },
         },
         _count: {
@@ -34,7 +54,11 @@ export async function GET() {
       orderBy: { nombre: 'asc' },
     });
 
-    return NextResponse.json(drivers);
+    return NextResponse.json(drivers, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=6, stale-while-revalidate=15',
+      },
+    });
   } catch (error) {
     console.error('Error fetching drivers:', error);
     return NextResponse.json({ error: 'Error al obtener repartidores' }, { status: 500 });

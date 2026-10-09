@@ -58,18 +58,36 @@ export default function Home() {
 
     try {
       const role = currentRoleRef.current;
-      const isDriver = role !== 'ADMIN' && role !== 'UNAUTHENTICATED';
+      const isUnauthenticated = role === 'UNAUTHENTICATED';
+      const isDriver = !isUnauthenticated && role !== 'ADMIN';
       const activeDriverId = isDriver ? parseInt(role, 10) : null;
+
+      // 1. In Gatekeeper / Login view: only load drivers once for the dropdown/PIN screen; DO NOT fetch orders!
+      if (isUnauthenticated) {
+        if (drivers.length === 0 || isManual) {
+          const driversRes = await fetch('/api/drivers');
+          if (driversRes.ok) {
+            const driversData = await driversRes.json();
+            setDrivers(driversData);
+          }
+        }
+        return;
+      }
+
+      // 2. Determine fetch promises based on role
       const ordersUrl = activeDriverId && !isNaN(activeDriverId)
         ? `/api/orders?driverId=${activeDriverId}`
         : '/api/orders';
 
-      const [ordersRes, driversRes] = await Promise.all([
+      // Drivers do not need the /api/drivers fleet array (only Admin uses it for the map and assignments)
+      const fetchPromises: [Promise<Response>, Promise<Response | null>] = [
         fetch(ordersUrl),
-        fetch('/api/drivers'),
-      ]);
+        !isDriver ? fetch('/api/drivers') : Promise.resolve(null),
+      ];
 
-      if (driversRes.ok) {
+      const [ordersRes, driversRes] = await Promise.all(fetchPromises);
+
+      if (driversRes && driversRes.ok) {
         const driversData = await driversRes.json();
         setDrivers(driversData);
       }
@@ -96,12 +114,7 @@ export default function Home() {
         prevOrdersCountRef.current = ordersData.length;
 
         // Check for delayed orders (> 90 minutes / 1h 30m in EN_CAMINO)
-        // Recordatorio acústico y notificación push EXCLUSIVAMENTE para repartidores sobre sus pedidos asignados.
-        // Los usuarios administrativos quedan 100% libres del sonido de alarma.
         const now = new Date().getTime();
-        const role = currentRoleRef.current;
-        const isDriver = role !== 'ADMIN' && role !== 'UNAUTHENTICATED';
-        const activeDriverId = isDriver ? parseInt(role, 10) : null;
 
         ordersData.forEach((order: any) => {
           if (order.estadoEntrega !== 'EN_CAMINO' && lastAlertedMinuteMapRef.current[order.id]) {
@@ -143,19 +156,26 @@ export default function Home() {
       isFetchingRef.current = false;
       if (isManual) setIsRefreshing(false);
     }
-  }, []);
+  }, [drivers.length]);
 
-  // Initial load and smart periodic polling (pauses when tab is hidden to save bandwidth)
+  // Initial load and smart role-based periodic polling (pauses when tab is hidden or user unauthenticated)
   useEffect(() => {
     fetchData(true);
 
+    // If unauthenticated, do NOT run polling interval (stops background quota drain on idle tabs)
+    if (currentRole === 'UNAUTHENTICATED') {
+      return;
+    }
+
+    // Role-tailored polling frequency: 15s for Admin, 25s for Driver in route
+    const pollIntervalMs = currentRole === 'ADMIN' ? 15000 : 25000;
+
     const interval = setInterval(() => {
-      // Do not poll if tab is hidden or minimized
       if (typeof document !== 'undefined' && document.hidden) {
         return;
       }
       fetchData(false);
-    }, 12000); // 12 seconds (50% reduction in API calls while keeping real-time responsiveness)
+    }, pollIntervalMs);
 
     // Immediate fetch when user returns to this tab
     const handleVisibilityChange = () => {
@@ -170,7 +190,7 @@ export default function Home() {
       clearInterval(interval);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [fetchData]);
+  }, [fetchData, currentRole]);
 
   const handleUpdateOrder = async (
     orderId: number,

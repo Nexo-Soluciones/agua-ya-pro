@@ -51,7 +51,9 @@ export async function POST(req: NextRequest) {
     // Get active drivers to auto-assign the one with fewest active orders
     const drivers = await db.user.findMany({
       where: { rol: 'REPARTIDOR', estado: 'ACTIVO' },
-      include: {
+      select: {
+        id: true,
+        nombre: true,
         _count: {
           select: {
             pedidosAsignados: {

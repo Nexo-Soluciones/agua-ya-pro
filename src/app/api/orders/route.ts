@@ -34,12 +34,59 @@ export async function GET(req: NextRequest) {
 
     const rawOrders = await db.order.findMany({
       where: whereClause,
-      include: {
-        cliente: true,
-        repartidor: true,
+      select: {
+        id: true,
+        numeroPedido: true,
+        clienteId: true,
+        repartidorId: true,
+        cantidadBotellones: true,
+        precioUnitario: true,
+        montoTotal: true,
+        resumenProductos: true,
+        metodoPago: true,
+        estadoPago: true,
+        estadoEntrega: true,
+        comprobanteRef: true,
+        numeroRemision: true,
+        numeroFactura: true,
+        creadoPor: true,
+        fechaCreacion: true,
+        fechaEntrega: true,
+        updatedAt: true,
+        cliente: {
+          select: {
+            id: true,
+            nombre: true,
+            telefono: true,
+            direccion: true,
+            barrioSector: true,
+            tipoCliente: true,
+            precioAcordado: true,
+            notasUbicacion: true,
+            lat: true,
+            lng: true,
+          },
+        },
+        repartidor: {
+          select: {
+            id: true,
+            nombre: true,
+            telefono: true,
+          },
+        },
         items: {
-          include: {
-            producto: true,
+          select: {
+            id: true,
+            nombreProducto: true,
+            cantidad: true,
+            precioUnitario: true,
+            subtotal: true,
+            productoId: true,
+            producto: {
+              select: {
+                categoria: true,
+              },
+            },
           },
         },
       },
@@ -52,7 +99,11 @@ export async function GET(req: NextRequest) {
       numeroPedido: o.numeroPedido || o.id + 1000,
     }));
 
-    return NextResponse.json(orders);
+    return NextResponse.json(orders, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=3, stale-while-revalidate=8',
+      },
+    });
   } catch (error: any) {
     console.error('Error fetching orders:', error);
     return NextResponse.json({ error: error?.message || 'Error al obtener pedidos' }, { status: 500 });

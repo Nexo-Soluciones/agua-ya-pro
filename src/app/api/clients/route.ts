@@ -16,18 +16,54 @@ export async function GET(req: NextRequest) {
             { barrioSector: { contains: query, mode: 'insensitive' } },
           ],
         },
+        select: {
+          id: true,
+          nombre: true,
+          telefono: true,
+          direccion: true,
+          barrioSector: true,
+          tipoCliente: true,
+          precioAcordado: true,
+          notasUbicacion: true,
+          requiereFactura: true,
+          numeroFactura: true,
+          lat: true,
+          lng: true,
+        },
         orderBy: { updatedAt: 'desc' },
         take: 20,
       });
-      return NextResponse.json(clients);
+      return NextResponse.json(clients, {
+        headers: {
+          'Cache-Control': 'public, s-maxage=5, stale-while-revalidate=20',
+        },
+      });
     }
 
     // Default limit to 50 recent clients to keep frontend fast with large database
     const clients = await db.client.findMany({
+      select: {
+        id: true,
+        nombre: true,
+        telefono: true,
+        direccion: true,
+        barrioSector: true,
+        tipoCliente: true,
+        precioAcordado: true,
+        notasUbicacion: true,
+        requiereFactura: true,
+        numeroFactura: true,
+        lat: true,
+        lng: true,
+      },
       orderBy: { updatedAt: 'desc' },
       take: 50,
     });
-    return NextResponse.json(clients);
+    return NextResponse.json(clients, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=10, stale-while-revalidate=30',
+      },
+    });
   } catch (error) {
     console.error('Error fetching clients:', error);
     return NextResponse.json({ error: 'Error al obtener clientes' }, { status: 500 });
