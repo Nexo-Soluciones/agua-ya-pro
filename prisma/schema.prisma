@@ -50,6 +50,9 @@ model Client {
   updatedAt      DateTime @updatedAt
 
   pedidos Order[]
+
+  @@index([nombre])
+  @@index([direccion])
 }
 
 model Order {
@@ -79,6 +82,12 @@ model Order {
 
   items              OrderItem[]
   logs               DeliveryLog[]
+
+  @@index([estadoEntrega])
+  @@index([repartidorId])
+  @@index([fechaCreacion])
+  @@index([estadoPago])
+  @@index([clienteId])
 }
 
 model Product {
@@ -109,6 +118,8 @@ model OrderItem {
   cantidad       Int      @default(1)
   precioUnitario Float
   subtotal       Float
+
+  @@index([pedidoId])
 }
 
 model DeliveryLog {
@@ -120,6 +131,9 @@ model DeliveryLog {
   horaMarcado  DateTime @default(now())
   estadoNuevo  String
   notasEntrega String?
+
+  @@index([pedidoId])
+  @@index([repartidorId])
 }
 
 model AuditLog {
@@ -132,6 +146,8 @@ model AuditLog {
   createdAt DateTime @default(now())
 
   usuario   User?    @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
 }
 
 

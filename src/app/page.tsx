@@ -57,8 +57,15 @@ export default function Home() {
     if (isManual) setIsRefreshing(true);
 
     try {
+      const role = currentRoleRef.current;
+      const isDriver = role !== 'ADMIN' && role !== 'UNAUTHENTICATED';
+      const activeDriverId = isDriver ? parseInt(role, 10) : null;
+      const ordersUrl = activeDriverId && !isNaN(activeDriverId)
+        ? `/api/orders?driverId=${activeDriverId}`
+        : '/api/orders';
+
       const [ordersRes, driversRes] = await Promise.all([
-        fetch('/api/orders'),
+        fetch(ordersUrl),
         fetch('/api/drivers'),
       ]);
 

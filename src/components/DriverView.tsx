@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Truck,
   CheckCircle2,
@@ -171,12 +171,50 @@ export function DriverView({ driver, orders, onUpdateOrder }: DriverViewProps) {
     0
   );
 
-  // SILENT BACKGROUND GPS LOCATION TRANSMITTER
+  // Distance helper in meters (Haversine formula) to prevent redundant database writes
+  const calculateDistanceMeters = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+    const R = 6371e3;
+    const phi1 = (lat1 * Math.PI) / 180;
+    const phi2 = (lat2 * Math.PI) / 180;
+    const deltaPhi = ((lat2 - lat1) * Math.PI) / 180;
+    const deltaLambda = ((lon2 - lon1) * Math.PI) / 180;
+    const a =
+      Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
+      Math.cos(phi1) * Math.cos(phi2) * Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  };
+
+  const lastSentGpsRef = useRef<{ lat: number; lng: number; timestamp: number } | null>(null);
+
+  // SMART BACKGROUND GPS LOCATION TRANSMITTER (Gated by distance & time to protect Supabase CPU/IO)
   useEffect(() => {
     if (typeof window === 'undefined' || !('geolocation' in navigator)) return;
 
-    const sendGpsUpdateSilently = (position: GeolocationPosition) => {
+    const sendGpsUpdate = (position: GeolocationPosition, forceHeartbeat = false) => {
       const { latitude, longitude, speed, heading } = position.coords;
+      const now = Date.now();
+
+      if (lastSentGpsRef.current && !forceHeartbeat) {
+        const timeElapsedSec = (now - lastSentGpsRef.current.timestamp) / 1000;
+        const distanceMoved = calculateDistanceMeters(
+          lastSentGpsRef.current.lat,
+          lastSentGpsRef.current.lng,
+          latitude,
+          longitude
+        );
+
+        // Throttle rule:
+        // 1. If moved less than 20 meters, do not write to DB unless 60s passed (prevent spamming when stopped).
+        // 2. If moved >= 20 meters, wait at least 15s between writes to protect connection slots and WAL I/O.
+        if (distanceMoved < 20 && timeElapsedSec < 60) {
+          return;
+        }
+        if (distanceMoved >= 20 && timeElapsedSec < 15) {
+          return;
+        }
+      }
+
+      lastSentGpsRef.current = { lat: latitude, lng: longitude, timestamp: now };
 
       fetch(`/api/drivers/${driver.id}/location`, {
         method: 'PATCH',
@@ -192,23 +230,32 @@ export function DriverView({ driver, orders, onUpdateOrder }: DriverViewProps) {
       });
     };
 
-    navigator.geolocation.getCurrentPosition(sendGpsUpdateSilently, () => {}, {
+    // Initial position on mount
+    navigator.geolocation.getCurrentPosition((pos) => sendGpsUpdate(pos, true), () => {}, {
       enableHighAccuracy: true,
+      maximumAge: 10000,
     });
 
-    const watchId = navigator.geolocation.watchPosition(sendGpsUpdateSilently, () => {}, {
-      enableHighAccuracy: true,
-      maximumAge: 8000,
-      timeout: 12000,
-    });
-
-    const intervalId = setInterval(() => {
-      navigator.geolocation.getCurrentPosition(sendGpsUpdateSilently, () => {}, {
+    // Geolocation watcher with movement gating
+    const watchId = navigator.geolocation.watchPosition(
+      (pos) => sendGpsUpdate(pos, false),
+      () => {},
+      {
         enableHighAccuracy: true,
-        maximumAge: 5000,
-        timeout: 8000,
-      });
-    }, 10000);
+        maximumAge: 10000,
+        timeout: 15000,
+      }
+    );
+
+    // Heartbeat fallback every 45s (keeps dispatch map accurate even if driver stays stationary)
+    const intervalId = setInterval(() => {
+      if (typeof document !== 'undefined' && document.hidden) return; // Do not pulse if tab is hidden / phone locked
+      navigator.geolocation.getCurrentPosition(
+        (pos) => sendGpsUpdate(pos, true),
+        () => {},
+        { enableHighAccuracy: true, maximumAge: 10000, timeout: 10000 }
+      );
+    }, 45000);
 
     return () => {
       navigator.geolocation.clearWatch(watchId);

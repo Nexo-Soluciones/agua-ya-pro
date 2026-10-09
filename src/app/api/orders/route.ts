@@ -8,6 +8,9 @@ export async function GET(req: NextRequest) {
     const driverId = searchParams.get('driverId');
     const status = searchParams.get('status');
     const paymentStatus = searchParams.get('paymentStatus');
+    const includeClosed = searchParams.get('includeClosed') === 'true';
+    const limitParam = searchParams.get('limit');
+    const take = limitParam ? parseInt(limitParam, 10) : 300;
 
     const whereClause: any = {};
 
@@ -20,6 +23,9 @@ export async function GET(req: NextRequest) {
 
     if (status) {
       whereClause.estadoEntrega = status;
+    } else if (!includeClosed) {
+      // Exclude archived CERRADO orders from real-time operational views to protect database performance
+      whereClause.estadoEntrega = { not: 'CERRADO' };
     }
 
     if (paymentStatus) {
@@ -38,6 +44,7 @@ export async function GET(req: NextRequest) {
         },
       },
       orderBy: { fechaCreacion: 'desc' },
+      take: isNaN(take) ? 300 : take,
     });
 
     const orders = rawOrders.map((o) => ({

@@ -10,4 +10,5 @@ export const db =
     log: ['error'],
   });
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = db;
+// Store in globalThis in both dev and production to reuse connections across warm serverless lambdas
+globalForPrisma.prisma = db;
