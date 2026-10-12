@@ -29,21 +29,41 @@ export default function Home() {
     currentRoleRef.current = currentRole;
   }, [currentRole]);
 
-  // Check initial authentication state from localStorage
+  // Check initial authentication state and synchronize with server session
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    async function verifyAuth() {
+      if (typeof window === 'undefined') return;
+
       const activeDriverId = localStorage.getItem('agua_ya_active_driver_id');
       const isAdminAuth = localStorage.getItem('aguaya_admin_authenticated') === 'true';
 
-      if (activeDriverId) {
+      if (isAdminAuth) {
+        try {
+          const res = await fetch('/api/auth/me');
+          if (res.ok) {
+            const data = await res.json();
+            if (data.authenticated && data.user?.rol === 'ADMIN') {
+              setCurrentRole('ADMIN');
+              setIsInitialAuthChecked(true);
+              return;
+            }
+          }
+        } catch (err) {
+          console.warn('Error verificando sesión administrativa:', err);
+        }
+
+        // Si el token en el servidor no es válido (por ejemplo, cambió el JWT_SECRET), limpiar sesión local
+        localStorage.removeItem('aguaya_admin_authenticated');
+        setCurrentRole('UNAUTHENTICATED');
+      } else if (activeDriverId) {
         setCurrentRole(activeDriverId);
-      } else if (isAdminAuth) {
-        setCurrentRole('ADMIN');
       } else {
         setCurrentRole('UNAUTHENTICATED');
       }
       setIsInitialAuthChecked(true);
     }
+
+    verifyAuth();
   }, []);
 
   // Request Notification Permissions on load

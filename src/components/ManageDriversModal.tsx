@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Truck, Plus, Edit2, Trash2, Check, UserCheck, AlertCircle, Phone } from 'lucide-react';
+import { X, Truck, Plus, Edit2, Trash2, Check, UserCheck, AlertCircle, Phone, Lock } from 'lucide-react';
+import { AdminAuthModal } from './AdminAuthModal';
 
 interface Driver {
   id: number;
@@ -24,6 +25,7 @@ export function ManageDriversModal({
   drivers,
   onDriversUpdated,
 }: ManageDriversModalProps) {
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [editingDriverId, setEditingDriverId] = useState<number | null>(null);
   const [editNombre, setEditNombre] = useState('');
   const [editTelefono, setEditTelefono] = useState('');
@@ -188,9 +190,21 @@ export function ManageDriversModal({
         {/* Content */}
         <div className="p-6 space-y-4">
           {errorMsg && (
-            <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs font-semibold flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
-              <span>{errorMsg}</span>
+            <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs font-semibold flex items-center justify-between gap-2 animate-fade-in">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
+                <span>{errorMsg}</span>
+              </div>
+              {errorMsg.toLowerCase().includes('autenticado') && (
+                <button
+                  type="button"
+                  onClick={() => setIsAuthModalOpen(true)}
+                  className="px-2.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold shrink-0 shadow-sm transition flex items-center gap-1"
+                >
+                  <Lock className="w-3 h-3" />
+                  <span>Iniciar Sesión</span>
+                </button>
+              )}
             </div>
           )}
 
@@ -386,6 +400,15 @@ export function ManageDriversModal({
           </div>
         </div>
       </div>
+
+      <AdminAuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        onSuccess={() => {
+          setIsAuthModalOpen(false);
+          setErrorMsg('');
+        }}
+      />
     </div>
   );
 }
